@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://apm:apm_dev_password@localhost:5433/apm_dev"
     redis_url: str = "redis://localhost:6380/0"
 
-    jwt_secret_key: str = "change-me-in-production"
+    jwt_secret_key: str = "change-me-in-production-use-a-random-32-plus-byte-secret"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
     magic_link_expire_minutes: int = 30
