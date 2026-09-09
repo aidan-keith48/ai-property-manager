@@ -49,3 +49,18 @@ export interface LandlordMe {
   email: string;
   name: string;
 }
+
+export type SubmissionStatus = "open" | "in_progress" | "resolved";
+
+export interface Submission {
+  id: number;
+  tenant_id: number;
+  unit_id: number;
+  description: string;
+  photo_paths: string[];
+  status: SubmissionStatus;
+  classification: string | null;
+  urgency: string | null;
+  created_at: string;
+  updated_at: string;
+}

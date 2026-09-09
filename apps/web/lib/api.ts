@@ -1,6 +1,10 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+// Separate storage keys for the two personas so a landlord and a tenant
+// session can coexist in the same browser (e.g. a landlord testing the
+// tenant portal) without clobbering each other.
 export const TOKEN_STORAGE_KEY = "apm_token";
+export const TENANT_TOKEN_STORAGE_KEY = "apm_tenant_token";
 
 export class ApiError extends Error {
   status: number;
@@ -11,18 +15,26 @@ export class ApiError extends Error {
   }
 }
 
-function getToken(): string | null {
+function getStoredToken(key: string): string | null {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_STORAGE_KEY);
+  return window.localStorage.getItem(key);
+}
+
+function setStoredToken(key: string, token: string | null): void {
+  if (typeof window === "undefined") return;
+  if (token) {
+    window.localStorage.setItem(key, token);
+  } else {
+    window.localStorage.removeItem(key);
+  }
 }
 
 export function setToken(token: string | null): void {
-  if (typeof window === "undefined") return;
-  if (token) {
-    window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
-  } else {
-    window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-  }
+  setStoredToken(TOKEN_STORAGE_KEY, token);
+}
+
+export function setTenantToken(token: string | null): void {
+  setStoredToken(TENANT_TOKEN_STORAGE_KEY, token);
 }
 
 interface ApiFetchOptions {
@@ -30,14 +42,15 @@ interface ApiFetchOptions {
   json?: unknown;
   formData?: FormData;
   auth?: boolean; // default true
+  tokenKey?: string; // default TOKEN_STORAGE_KEY (landlord)
 }
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-  const { method = "GET", json, formData, auth = true } = options;
+  const { method = "GET", json, formData, auth = true, tokenKey = TOKEN_STORAGE_KEY } = options;
   const headers: Record<string, string> = {};
 
   if (auth) {
-    const token = getToken();
+    const token = getStoredToken(tokenKey);
     if (token) headers["Authorization"] = `Bearer ${token}`;
   }
 
