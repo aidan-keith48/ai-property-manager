@@ -1,10 +1,14 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import { apiFetch, ApiError, setTenantToken } from "@/lib/api";
-import { Card, ErrorText } from "@/components/ui";
+import { ErrorText } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export default function PortalVerifyPage(props: PageProps<"/portal/verify">) {
   const { token } = use(props.searchParams);
@@ -37,16 +41,22 @@ export default function PortalVerifyPage(props: PageProps<"/portal/verify">) {
   }, [token]);
 
   return (
-    <Card className="mx-auto max-w-sm text-sm text-slate-700">
+    <Card className="p-6">
       {error ? (
         <>
-          <ErrorText>{error}</ErrorText>
-          <a href="/portal" className="mt-2 inline-block underline">
-            Request a new link
-          </a>
+          <h1 className="text-lg font-semibold text-foreground">Link didn&apos;t work</h1>
+          <div className="mt-2">
+            <ErrorText>{error}</ErrorText>
+          </div>
+          <Button asChild variant="outline" className="mt-4">
+            <Link href="/portal">Request a new link</Link>
+          </Button>
         </>
       ) : (
-        <p>Verifying your link...</p>
+        <div className="flex items-center gap-3 py-4">
+          <Loader2 className="size-5 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Verifying your link...</p>
+        </div>
       )}
     </Card>
   );

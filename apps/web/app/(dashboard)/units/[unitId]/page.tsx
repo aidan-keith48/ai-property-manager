@@ -2,11 +2,28 @@
 
 import { use, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { ArrowLeft, DoorOpen, FileText, Loader2, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Lease, LeaseDocument, Tenant, Unit } from "@/lib/types";
 import { ActivityLog } from "@/components/activity-log";
-import { Button, Card, ErrorText, Input, PageHeader } from "@/components/ui";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { EmptyState } from "@/components/empty-state";
+import { DetailSkeleton } from "@/components/skeletons";
+import { LeaseStatusBadge } from "@/components/status-badge";
+import { ErrorText, PageHeader } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
   const { unitId } = use(props.params);
@@ -20,6 +37,7 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const [selectedTenantId, setSelectedTenantId] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -83,8 +101,11 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
       setStartDate("");
       setRentAmount("");
       await loadData();
+      toast.success("Lease created");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to create lease");
+      const message = err instanceof ApiError ? err.message : "Failed to create lease";
+      setError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -92,142 +113,232 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
 
   async function handleEndLease() {
     if (!activeLease) return;
-    if (!confirm("End this lease? The tenant will be unassigned from this unit.")) return;
-    await apiFetch(`/leases/${activeLease.id}/end`, { method: "POST", json: {} });
-    await loadData();
+    try {
+      await apiFetch(`/leases/${activeLease.id}/end`, { method: "POST", json: {} });
+      await loadData();
+      toast.success("Lease ended");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to end lease");
+    }
   }
 
   async function handleUploadDocument() {
     if (!activeLease || !fileInputRef.current?.files?.[0]) return;
     const formData = new FormData();
     formData.append("file", fileInputRef.current.files[0]);
-    setSubmitting(true);
+    setUploading(true);
     try {
       await apiFetch(`/leases/${activeLease.id}/documents`, { method: "POST", formData });
       fileInputRef.current.value = "";
       await loadData();
+      toast.success("Document uploaded");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to upload document");
+      const message = err instanceof ApiError ? err.message : "Failed to upload document";
+      setError(message);
+      toast.error(message);
     } finally {
-      setSubmitting(false);
+      setUploading(false);
     }
   }
 
   async function handleDeleteDocument(documentId: number) {
     if (!activeLease) return;
-    if (!confirm("Delete this document?")) return;
-    await apiFetch(`/leases/${activeLease.id}/documents/${documentId}`, { method: "DELETE" });
-    await loadData();
+    try {
+      await apiFetch(`/leases/${activeLease.id}/documents/${documentId}`, { method: "DELETE" });
+      await loadData();
+      toast.success("Document deleted");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to delete document");
+    }
   }
 
   if (notFound) {
     return (
-      <div>
-        <p className="text-sm text-slate-600">
-          This unit doesn&apos;t exist or you don&apos;t have access to it.
-        </p>
-        <Link href="/properties" className="text-sm font-medium text-slate-900 underline">
-          Back to properties
-        </Link>
-      </div>
+      <EmptyState
+        icon={DoorOpen}
+        title="Unit not found"
+        description="This unit doesn't exist or you don't have access to it."
+        action={
+          <Button asChild variant="outline">
+            <Link href="/properties">
+              <ArrowLeft className="size-4" />
+              Back to properties
+            </Link>
+          </Button>
+        }
+      />
     );
   }
 
   if (loading || !unit) {
-    return <p className="text-sm text-slate-500">Loading...</p>;
+    return <DetailSkeleton />;
   }
 
   return (
     <div>
-      <PageHeader title={`Unit ${unit.unit_label}`}>
-        <Link
-          href={`/properties/${unit.property_id}`}
-          className="text-sm font-medium text-slate-600 underline"
-        >
+      <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3 text-muted-foreground">
+        <Link href={`/properties/${unit.property_id}`}>
+          <ArrowLeft className="size-4" />
           Back to property
         </Link>
-      </PageHeader>
+      </Button>
+
+      <PageHeader
+        title={`Unit ${unit.unit_label}`}
+        description={`${unit.bedrooms ?? "?"} bed · ${unit.bathrooms ?? "?"} bath`}
+      />
 
       {activeLease ? (
-        <Card className="mb-6">
-          <h2 className="mb-2 text-sm font-semibold text-slate-900">Current Lease</h2>
-          <p className="text-sm text-slate-700">
-            Tenant:{" "}
-            <Link href={`/tenants/${activeLease.tenant_id}`} className="underline">
-              {tenantById.get(activeLease.tenant_id)?.name ?? `#${activeLease.tenant_id}`}
-            </Link>
-          </p>
-          <p className="text-sm text-slate-700">Rent: R{activeLease.rent_amount}</p>
-          <p className="text-sm text-slate-700">Start: {activeLease.start_date}</p>
-          <Button variant="danger" className="mt-3" onClick={handleEndLease}>
-            End Lease
-          </Button>
+        <Card className="mb-8 p-6">
+          <div className="flex items-start justify-between gap-4">
+            <h2 className="text-sm font-semibold text-foreground">Current lease</h2>
+            <LeaseStatusBadge status={activeLease.status} />
+          </div>
 
-          <div className="mt-4 border-t border-slate-200 pt-4">
-            <h3 className="mb-2 text-sm font-semibold text-slate-900">Lease Documents</h3>
+          <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div>
+              <dt className="text-xs font-medium text-muted-foreground">Tenant</dt>
+              <dd className="mt-1 text-sm font-medium">
+                <Link
+                  href={`/tenants/${activeLease.tenant_id}`}
+                  className="text-primary hover:underline"
+                >
+                  {tenantById.get(activeLease.tenant_id)?.name ?? `#${activeLease.tenant_id}`}
+                </Link>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-muted-foreground">Rent</dt>
+              <dd className="mt-1 text-sm font-medium text-foreground">
+                R{activeLease.rent_amount}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-muted-foreground">Start date</dt>
+              <dd className="mt-1 text-sm font-medium text-foreground">
+                {activeLease.start_date}
+              </dd>
+            </div>
+          </dl>
+
+          <ConfirmDialog
+            title="End this lease?"
+            description="The tenant will be unassigned from this unit. Lease history is kept."
+            confirmLabel="End lease"
+            onConfirm={handleEndLease}
+            trigger={
+              <Button variant="destructive-soft" size="sm" className="mt-5 self-start">
+                End lease
+              </Button>
+            }
+          />
+
+          <div className="mt-6 border-t border-border pt-5">
+            <h3 className="text-sm font-semibold text-foreground">Lease documents</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              PDFs and ID copies. Only you and the tenant on this lease can open them.
+            </p>
+
             {documents.length === 0 ? (
-              <p className="text-sm text-slate-500">No documents uploaded.</p>
+              <p className="mt-4 text-sm text-muted-foreground">No documents uploaded yet.</p>
             ) : (
-              <ul className="mb-3 flex flex-col gap-1">
+              <ul className="mt-4 flex flex-col gap-2">
                 {documents.map((doc) => (
-                  <li key={doc.id} className="flex items-center justify-between text-sm">
-                    <span>
-                      Document #{doc.id} ({doc.file_type})
+                  <li
+                    key={doc.id}
+                    className="flex items-center justify-between gap-3 rounded-lg bg-muted/60 px-3 py-2"
+                  >
+                    <span className="flex min-w-0 items-center gap-2 text-sm">
+                      <FileText className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate">
+                        Document #{doc.id}{" "}
+                        <span className="text-muted-foreground">({doc.file_type})</span>
+                      </span>
                     </span>
-                    <button
-                      onClick={() => handleDeleteDocument(doc.id)}
-                      className="text-red-600 underline"
-                    >
-                      Delete
-                    </button>
+                    <ConfirmDialog
+                      title="Delete this document?"
+                      description="This permanently removes the file. This can't be undone."
+                      confirmLabel="Delete"
+                      onConfirm={() => handleDeleteDocument(doc.id)}
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Delete document ${doc.id}`}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      }
+                    />
                   </li>
                 ))}
               </ul>
             )}
-            <div className="flex items-center gap-2">
-              <input ref={fileInputRef} type="file" className="text-sm" />
-              <Button type="button" onClick={handleUploadDocument} disabled={submitting}>
-                Upload
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="max-w-full text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleUploadDocument}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Upload className="size-4" />
+                )}
+                {uploading ? "Uploading..." : "Upload"}
               </Button>
             </div>
           </div>
         </Card>
       ) : (
-        <Card className="mb-6">
-          <h2 className="mb-3 text-sm font-semibold text-slate-900">Assign a Tenant</h2>
+        <Card className="mb-8 p-6">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">Assign a tenant</h2>
           {availableTenants.length === 0 ? (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               No tenants without an active lease. Add one from the{" "}
-              <Link href="/tenants" className="underline">
+              <Link href="/tenants" className="text-primary hover:underline">
                 Tenants
               </Link>{" "}
               page first.
             </p>
           ) : (
-            <form onSubmit={handleCreateLease} className="flex flex-wrap items-end gap-3">
-              <div className="min-w-40">
-                <label className="mb-1 block text-xs font-medium text-slate-600">Tenant</label>
-                <select
+            <form onSubmit={handleCreateLease} className="flex flex-wrap items-end gap-4">
+              <div className="min-w-44">
+                <Label htmlFor="lease-tenant" className="mb-2">
+                  Tenant
+                </Label>
+                <Select
                   value={selectedTenantId}
-                  onChange={(e) => setSelectedTenantId(e.target.value)}
+                  onValueChange={setSelectedTenantId}
                   required
-                  className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm"
                 >
-                  <option value="" disabled>
-                    Select tenant
-                  </option>
-                  {availableTenants.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="lease-tenant" className="w-full">
+                    <SelectValue placeholder="Select tenant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableTenants.map((t) => (
+                      <SelectItem key={t.id} value={String(t.id)}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">
+                <Label htmlFor="lease-start" className="mb-2">
                   Start date
-                </label>
+                </Label>
                 <Input
+                  id="lease-start"
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
@@ -235,10 +346,11 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
                 />
               </div>
               <div className="w-32">
-                <label className="mb-1 block text-xs font-medium text-slate-600">
+                <Label htmlFor="lease-rent" className="mb-2">
                   Rent (R)
-                </label>
+                </Label>
                 <Input
+                  id="lease-rent"
                   type="number"
                   min={0}
                   step="0.01"
@@ -248,7 +360,7 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
                 />
               </div>
               <Button type="submit" disabled={submitting}>
-                Create Lease
+                {submitting ? "Creating..." : "Create lease"}
               </Button>
             </form>
           )}
@@ -256,7 +368,7 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
         </Card>
       )}
 
-      <h2 className="mb-3 mt-6 text-sm font-semibold text-slate-900">Activity</h2>
+      <h2 className="mt-10 mb-4 text-lg font-semibold text-foreground">Activity</h2>
       <ActivityLog fetchPath={`/units/${unitId}/activity`} />
     </div>
   );

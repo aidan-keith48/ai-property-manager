@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { History } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
 import type { AuditLogEntry } from "@/lib/types";
-import { Card } from "@/components/ui";
+import { EmptyState } from "@/components/empty-state";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ACTION_LABELS: Record<string, string> = {
   "property.create": "Property created",
@@ -45,26 +48,46 @@ export function ActivityLog({ fetchPath }: { fetchPath: string }) {
   }, [fetchPath]);
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading activity...</p>;
+    return (
+      <Card className="p-6">
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between gap-4">
+              <Skeleton className="h-3 w-1/3" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
   }
 
   if (entries.length === 0) {
-    return <p className="text-sm text-slate-500">No activity yet.</p>;
+    return (
+      <EmptyState
+        icon={History}
+        title="No activity yet"
+        description="Actions on this property and its units are recorded here automatically."
+      />
+    );
   }
 
   return (
-    <Card>
-      <ul className="flex flex-col gap-2">
+    <Card className="p-6">
+      <ul className="flex flex-col">
         {entries.map((entry) => (
-          <li key={entry.id} className="flex items-center justify-between text-sm">
-            <span className="text-slate-700">
+          <li
+            key={entry.id}
+            className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border py-3 first:pt-0 last:border-0 last:pb-0"
+          >
+            <span className="text-sm font-medium text-foreground">
               {describe(entry)}
-              <span className="ml-1 text-xs text-slate-400">
-                ({entry.actor_type}
-                {entry.actor_id !== null ? ` #${entry.actor_id}` : ""})
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                {entry.actor_type}
+                {entry.actor_id !== null ? ` #${entry.actor_id}` : ""}
               </span>
             </span>
-            <span className="shrink-0 text-xs text-slate-400">
+            <span className="shrink-0 text-xs text-muted-foreground">
               {new Date(entry.timestamp).toLocaleString()}
             </span>
           </li>

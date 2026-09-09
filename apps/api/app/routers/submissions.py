@@ -84,6 +84,21 @@ async def create_submission(
     return submission
 
 
+@router.get("", response_model=list[SubmissionRead])
+def list_submissions(
+    tenant: Tenant = Depends(require_tenant),
+    db: Session = Depends(get_db),
+) -> list[Submission]:
+    """The tenant's own submission history, newest first. Scoped to the
+    authenticated tenant — same ownership rule as get_submission below."""
+    return (
+        db.query(Submission)
+        .filter(Submission.tenant_id == tenant.id)
+        .order_by(Submission.created_at.desc())
+        .all()
+    )
+
+
 @router.get("/{submission_id}", response_model=SubmissionRead)
 def get_submission(
     submission_id: int,

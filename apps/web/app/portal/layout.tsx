@@ -1,14 +1,20 @@
+import { Building2 } from "lucide-react";
+
+import { PortalTabBar } from "@/components/portal-tab-bar";
+
 export default function PortalLayout({ children }: LayoutProps<"/portal">) {
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-lg px-4 py-3">
-          <span className="text-sm font-medium text-slate-700">
-            AI Property Manager — Tenant Portal
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex max-w-lg items-center gap-2 px-4 py-3.5">
+          <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Building2 className="size-3.5" />
           </span>
+          <span className="text-sm font-semibold text-foreground">Tenant Portal</span>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 pb-24">{children}</main>
+      <PortalTabBar />
     </div>
   );
 }

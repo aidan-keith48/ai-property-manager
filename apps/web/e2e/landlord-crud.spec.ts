@@ -1,6 +1,13 @@
 import { test, expect } from "@playwright/test";
 
-import { createProperty, createUnit, signupLandlord, uniqueEmail, uniqueName } from "./helpers";
+import {
+  createProperty,
+  createUnit,
+  selectTenant,
+  signupLandlord,
+  uniqueEmail,
+  uniqueName,
+} from "./helpers";
 
 test.describe("Landlord property/unit/tenant CRUD", () => {
   test("signup, create property and unit, see them listed", async ({ page }) => {
@@ -85,22 +92,23 @@ test.describe("Tenant and lease lifecycle", () => {
     // (app/(dashboard)/tenants/page.tsx) legitimately shows every tenant on
     // this dev DB, so "No active lease" appears on other cards too.
     const tenantCard = page.locator("a", { hasText: tenantName });
-    await expect(tenantCard).toContainText("No active lease");
+    await expect(tenantCard).toContainText("Unassigned");
 
     await page.click('nav >> text=Properties');
     await page.click("text=Lease Test Building");
     await page.waitForURL(/\/properties\/\d+/);
     await page.click("text=2B");
     await page.waitForURL(/\/units\/\d+/);
-    await page.selectOption("select", { label: tenantName });
+    await selectTenant(page, tenantName);
     await page.locator('input[type="date"]').fill("2026-01-01");
     await page.fill('input[type="number"]', "6500");
     await page.click('button:has-text("Create Lease")');
-    await expect(page.locator("text=Current Lease")).toBeVisible();
+    await expect(page.locator("text=Current lease")).toBeVisible();
 
-    page.once("dialog", (dialog) => dialog.accept());
-    await page.click('button:has-text("End Lease")');
-    await expect(page.locator("text=Assign a Tenant")).toBeVisible();
+    // Destructive actions confirm through an AlertDialog now, not window.confirm.
+    await page.getByRole("button", { name: "End lease" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "End lease" }).click();
+    await expect(page.locator("text=Assign a tenant")).toBeVisible();
 
     await page.click('nav >> text=Tenants');
     await page.click(`text=${tenantName}`);

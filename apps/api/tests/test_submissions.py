@@ -142,6 +142,30 @@ def test_tenant_can_view_own_submission_but_not_others(client, landlord_token):
     assert other.status_code == 404
 
 
+def test_tenant_lists_only_own_submissions_newest_first(client, landlord_token):
+    headers = landlord_token()
+    tenant_a_headers = _make_tenant_with_lease(client, headers, "sub-list-a@example.com")
+    tenant_b_headers = _make_tenant_with_lease(client, headers, "sub-list-b@example.com")
+
+    client.post("/submissions", data={"description": "A first"}, headers=tenant_a_headers)
+    client.post("/submissions", data={"description": "A second"}, headers=tenant_a_headers)
+    client.post("/submissions", data={"description": "B only"}, headers=tenant_b_headers)
+
+    resp = client.get("/submissions", headers=tenant_a_headers)
+    assert resp.status_code == 200
+    descriptions = [s["description"] for s in resp.json()]
+    assert "B only" not in descriptions
+    assert sorted(descriptions) == ["A first", "A second"]
+
+    timestamps = [s["created_at"] for s in resp.json()]
+    assert timestamps == sorted(timestamps, reverse=True)
+
+
+def test_landlord_cannot_list_tenant_submissions(client, landlord_token):
+    resp = client.get("/submissions", headers=landlord_token())
+    assert resp.status_code in (401, 403)
+
+
 def test_photo_viewable_by_owning_tenant_and_landlord(client, landlord_token):
     headers = landlord_token()
     tenant_headers = _make_tenant_with_lease(client, headers, "sub-tenant-photo@example.com")

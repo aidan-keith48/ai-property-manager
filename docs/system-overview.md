@@ -8,10 +8,16 @@ spec, see [`prd.md`](prd.md). This doc is the "what actually happens when
 you click things" companion to those two.
 
 Two independent front doors share one Next.js codebase and one FastAPI
-backend: the **landlord dashboard** (`/properties`, `/tenants`, `/inbox`,
-etc.) and the **tenant portal** (`/portal/*`). They never share a session —
-a landlord's JWT and a tenant's JWT live under different `localStorage`
-keys, so both can be open in the same browser without interfering.
+backend: the **landlord dashboard** (`/` overview, plus `/properties`,
+`/tenants`, `/leases`, `/inbox`) and the **tenant portal** (`/portal/*`).
+They never share a session — a landlord's JWT and a tenant's JWT live under
+different `localStorage` keys, so both can be open in the same browser
+without interfering.
+
+The dashboard uses a left sidebar (desktop-first, collapsing to a
+hamburger sheet on mobile); the portal is mobile-first with a bottom tab
+bar. Both are built on shadcn/ui primitives themed from a single set of
+CSS variables in `apps/web/app/globals.css` — see §10.
 
 ---
 
@@ -116,6 +122,12 @@ Once a lease ends, that tenant becomes available again in the "assign a
 tenant" dropdown on any unit's page (`app/(dashboard)/units/[unitId]/page.tsx`
 filters tenants where `unit_id === null`).
 
+`/leases` and `/leases/[leaseId]` give a read-only view across every
+property (`GET /leases` returns bare ids, so
+`apps/web/lib/use-leases.ts` joins tenant/unit/property names client-side).
+Creating a lease, ending one, and managing its documents all stay on the
+unit page, so those mutations live in exactly one place.
+
 ---
 
 ## 4. Lease documents
@@ -174,6 +186,12 @@ A tenant never gets a password. The flow:
    (`actor_type: tenant`), and a `CommunicationLog` row is created as the
    automatic acknowledgment message — all in one transaction. The
    frontend then shows a confirmation screen with the submission id.
+4. **`/portal/submissions`** — the tenant's own report history, and
+   `/portal/submissions/[id]` for one thread (the landlord's replies are
+   read-only here; tenants can't post into a thread in Phase 1). Backed by
+   `GET /submissions`, scoped to the authenticated tenant the same way the
+   single-submission reads are. A bottom tab bar switches between
+   reporting and history once a tenant is signed in.
 
 Both the magic-link-request and submission-create endpoints are
 rate-limited by IP (§9) — the tenant portal is the one surface reachable
@@ -307,13 +325,43 @@ pilot landlord enters the system.
 
 ---
 
+## 12. The design system
+
+**Where:** `apps/web/app/globals.css`, `apps/web/components/ui/`
+
+Every color, radius and shadow is a CSS variable defined once on `:root`
+in `globals.css`, exposed to Tailwind through `@theme inline`. Components
+never hardcode colors — they use token-backed utilities (`bg-card`,
+`text-muted-foreground`, `bg-status-open`). Changing the accent is a
+one-line edit to `--primary`.
+
+The app is **light-only by design**. That's load-bearing, not incidental:
+`@custom-variant dark (&:is(.dark *))` re-points every `dark:` variant
+(including the ones baked into shadcn components) at a `.dark` class that
+is never applied, instead of the OS `prefers-color-scheme`. An earlier
+build inherited create-next-app's `prefers-color-scheme: dark` block,
+which flipped the page near-black and — because form controls inherit
+`color` — made every input's text near-invisible for anyone whose OS was
+in dark mode. Removing that block and layering the `body` rule inside
+`@layer base` is what fixed it; keep both properties if you touch this
+file.
+
+Shared pieces worth reusing rather than re-inventing:
+`components/status-badge.tsx` (status chips, the only place status colors
+live), `components/empty-state.tsx`, `components/skeletons.tsx`,
+`components/confirm-dialog.tsx` (destructive confirmations — the app uses
+no native `confirm()`), and `components/motion.tsx` (page transitions and
+staggered list entrances, via Framer Motion). Toasts are `sonner`,
+mounted once in `apps/web/app/layout.tsx`.
+
+---
+
 ## Where to look next
 
-- Want to run it locally? [`README.md`](../README.md) → Local
-  development.
+- Want to run it locally? [`README.md`](../README.md) → Running it.
 - Want the full milestone-by-milestone build history and the decisions
   behind them? [`engineering-plan.md`](engineering-plan.md).
 - Want to see the tests that prove all of the above actually works?
-  `apps/api/tests/` (57 pytest cases), `apps/web/e2e/` (10 Playwright
+  `apps/api/tests/` (59 pytest cases), `apps/web/e2e/` (10 Playwright
   cases, `pnpm test:e2e`), and `apps/web/lib/*.test.ts` (10 Vitest unit
   cases, `pnpm test`).

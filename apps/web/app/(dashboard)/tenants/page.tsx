@@ -2,10 +2,20 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { Plus, Users } from "lucide-react";
+import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Tenant } from "@/lib/types";
-import { Button, Card, ErrorText, Input, PageHeader } from "@/components/ui";
+import { EmptyState } from "@/components/empty-state";
+import { ListItem, StaggerList } from "@/components/motion";
+import { CardListSkeleton } from "@/components/skeletons";
+import { ErrorText, PageHeader } from "@/components/ui";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -43,8 +53,11 @@ export default function TenantsPage() {
       setEmail("");
       setPhone("");
       await loadTenants();
+      toast.success("Tenant added");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to create tenant");
+      const message = err instanceof ApiError ? err.message : "Failed to create tenant";
+      setError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -52,52 +65,94 @@ export default function TenantsPage() {
 
   return (
     <div>
-      <PageHeader title="Tenants" />
+      <PageHeader
+        title="Tenants"
+        description="Everyone renting from you, and where they currently live."
+      />
 
-      <Card className="mb-6">
-        <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-32">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Name</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div className="flex-1 min-w-40">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Email</label>
+      <Card className="mb-8 p-6">
+        <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-4">
+          <div className="min-w-32 flex-1">
+            <Label htmlFor="tenant-name" className="mb-2">
+              Name
+            </Label>
             <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="tenant-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Thandi Mokoena"
               required
             />
           </div>
-          <div className="flex-1 min-w-32">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Phone</label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <div className="min-w-40 flex-1">
+            <Label htmlFor="tenant-email" className="mb-2">
+              Email
+            </Label>
+            <Input
+              id="tenant-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tenant@example.com"
+              required
+            />
+          </div>
+          <div className="min-w-32 flex-1">
+            <Label htmlFor="tenant-phone" className="mb-2">
+              Phone
+            </Label>
+            <Input
+              id="tenant-phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Optional"
+            />
           </div>
           <Button type="submit" disabled={submitting}>
-            Add Tenant
+            <Plus className="size-4" />
+            {submitting ? "Adding..." : "Add tenant"}
           </Button>
         </form>
         <ErrorText>{error}</ErrorText>
       </Card>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading...</p>
+        <CardListSkeleton />
       ) : tenants.length === 0 ? (
-        <p className="text-sm text-slate-500">No tenants yet. Add one above.</p>
+        <EmptyState
+          icon={Users}
+          title="No tenants yet"
+          description="Add your first tenant above, then assign them to a unit from that unit's page."
+        />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <StaggerList className="grid gap-4 sm:grid-cols-2">
           {tenants.map((tenant) => (
-            <Link key={tenant.id} href={`/tenants/${tenant.id}`}>
-              <Card className="transition hover:border-slate-400">
-                <h2 className="font-medium text-slate-900">{tenant.name}</h2>
-                <p className="text-sm text-slate-600">{tenant.email}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {tenant.unit_id ? `Assigned to unit #${tenant.unit_id}` : "No active lease"}
-                </p>
-              </Card>
-            </Link>
+            <ListItem key={tenant.id}>
+              <Link
+                href={`/tenants/${tenant.id}`}
+                className="block h-full rounded-xl bg-card p-5 shadow-soft transition-shadow hover:shadow-lift"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="font-semibold text-foreground">{tenant.name}</h2>
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                      {tenant.email}
+                    </p>
+                  </div>
+                  {tenant.unit_id ? (
+                    <Badge className="bg-status-active text-status-active-foreground">
+                      Housed
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-status-ended text-status-ended-foreground">
+                      Unassigned
+                    </Badge>
+                  )}
+                </div>
+              </Link>
+            </ListItem>
           ))}
-        </div>
+        </StaggerList>
       )}
     </div>
   );

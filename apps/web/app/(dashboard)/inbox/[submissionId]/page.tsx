@@ -2,10 +2,19 @@
 
 import { use, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { ArrowLeft, Inbox as InboxIcon, Send } from "lucide-react";
+import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type { InboxSubmissionDetail, SubmissionMessage } from "@/lib/types";
-import { AuthedImage, Button, Card, ErrorText, PageHeader } from "@/components/ui";
+import { EmptyState } from "@/components/empty-state";
+import { DetailSkeleton } from "@/components/skeletons";
+import { SubmissionStatusBadge } from "@/components/status-badge";
+import { AuthedImage, ErrorText, PageHeader } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]">) {
   const { submissionId } = use(props.params);
@@ -49,8 +58,11 @@ export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]"
       });
       setReply("");
       await loadDetail();
+      toast.success("Reply sent");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to send reply");
+      const message = err instanceof ApiError ? err.message : "Failed to send reply";
+      setError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -58,61 +70,95 @@ export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]"
 
   if (notFound) {
     return (
-      <div>
-        <p className="text-sm text-slate-600">
-          This submission doesn&apos;t exist or you don&apos;t have access to it.
-        </p>
-        <Link href="/inbox" className="text-sm font-medium text-slate-900 underline">
-          Back to inbox
-        </Link>
-      </div>
+      <EmptyState
+        icon={InboxIcon}
+        title="Submission not found"
+        description="This submission doesn't exist or you don't have access to it."
+        action={
+          <Button asChild variant="outline">
+            <Link href="/inbox">
+              <ArrowLeft className="size-4" />
+              Back to inbox
+            </Link>
+          </Button>
+        }
+      />
     );
   }
 
   if (loading || !detail) {
-    return <p className="text-sm text-slate-500">Loading...</p>;
+    return <DetailSkeleton />;
   }
 
   return (
     <div>
-      <PageHeader title={`${detail.tenant_name} — ${detail.property_name} / ${detail.unit_label}`}>
-        <Link href="/inbox" className="text-sm font-medium text-slate-600 underline">
+      <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3 text-muted-foreground">
+        <Link href="/inbox">
+          <ArrowLeft className="size-4" />
           Back to inbox
         </Link>
+      </Button>
+
+      <PageHeader
+        title={detail.tenant_name}
+        description={`${detail.property_name} · Unit ${detail.unit_label}`}
+      >
+        <SubmissionStatusBadge status={detail.submission.status} />
       </PageHeader>
 
-      <Card className="mb-6">
-        <p className="text-sm text-slate-700">{detail.submission.description}</p>
+      <Card className="mb-8 p-6">
+        <h2 className="mb-2 text-sm font-semibold text-foreground">Reported issue</h2>
+        <p className="text-sm text-muted-foreground">{detail.submission.description}</p>
         {detail.submission.photo_paths.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-3">
             {detail.submission.photo_paths.map((_, index) => (
               <AuthedImage
                 key={index}
                 path={`/submissions/${detail.submission.id}/photos/${index}`}
                 alt={`Submission photo ${index + 1}`}
-                className="h-24 w-24 rounded object-cover"
+                className="size-28 rounded-lg object-cover"
               />
             ))}
           </div>
         )}
       </Card>
 
-      <h2 className="mb-2 text-sm font-semibold text-slate-900">Conversation</h2>
-      <div className="mb-4 flex flex-col gap-2">
-        {detail.messages.map((message) => (
-          <div key={message.id} className="rounded border border-slate-200 bg-white p-3 text-sm">
-            <p className="text-slate-700">{message.content}</p>
-            <p className="mt-1 text-xs text-slate-400">
-              {new Date(message.timestamp).toLocaleString()}
-            </p>
-          </div>
-        ))}
+      <h2 className="mb-4 text-lg font-semibold text-foreground">Conversation</h2>
+      <div className="mb-6 flex flex-col gap-3">
+        {detail.messages.map((message) => {
+          // Outbound = from the landlord/system to the tenant.
+          const outbound = message.direction === "outbound";
+          return (
+            <div
+              key={message.id}
+              className={cn("flex", outbound ? "justify-end" : "justify-start")}
+            >
+              <div
+                className={cn(
+                  "max-w-[80%] rounded-2xl px-4 py-3 text-sm shadow-soft",
+                  outbound
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-card-foreground"
+                )}
+              >
+                <p>{message.content}</p>
+                <p
+                  className={cn(
+                    "mt-1.5 text-xs",
+                    outbound ? "text-primary-foreground/70" : "text-muted-foreground"
+                  )}
+                >
+                  {new Date(message.timestamp).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <Card>
-        <form onSubmit={handleReply} className="flex flex-col gap-2">
-          <textarea
-            className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
+      <Card className="p-6">
+        <form onSubmit={handleReply} className="flex flex-col gap-3">
+          <Textarea
             rows={3}
             placeholder="Reply to this tenant..."
             value={reply}
@@ -121,7 +167,8 @@ export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]"
           />
           <ErrorText>{error}</ErrorText>
           <Button type="submit" disabled={submitting} className="self-start">
-            {submitting ? "Sending..." : "Send Reply"}
+            <Send className="size-4" />
+            {submitting ? "Sending..." : "Send reply"}
           </Button>
         </form>
       </Card>

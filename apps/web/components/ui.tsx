@@ -1,47 +1,13 @@
 "use client";
 
-import { useEffect, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { apiFetchBlob, TOKEN_STORAGE_KEY } from "@/lib/api";
-
-export function Button({
-  className = "",
-  variant = "primary",
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "danger" | "secondary" }) {
-  const variants = {
-    primary: "bg-slate-900 text-white hover:bg-slate-700",
-    secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
-    danger: "bg-red-600 text-white hover:bg-red-700",
-  };
-  return (
-    <button
-      className={`rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50 ${variants[variant]} ${className}`}
-      {...props}
-    />
-  );
-}
-
-export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
-      {...props}
-    />
-  );
-}
-
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-lg border border-slate-200 bg-white p-4 shadow-sm ${className}`}>
-      {children}
-    </div>
-  );
-}
+import { cn } from "@/lib/utils";
 
 export function ErrorText({ children }: { children: ReactNode }) {
   if (!children) return null;
-  return <p className="text-sm text-red-600">{children}</p>;
+  return <p className="text-sm text-destructive">{children}</p>;
 }
 
 export function AuthedImage({
@@ -72,16 +38,29 @@ export function AuthedImage({
   }, [path, tokenKey]);
 
   if (!objectUrl) {
-    return <div className={`animate-pulse rounded bg-slate-200 ${className}`} />;
+    return <div className={cn("animate-pulse rounded-lg bg-muted", className)} />;
   }
   // eslint-disable-next-line @next/next/no-img-element -- object URL from an authenticated fetch, next/image can't handle that
   return <img src={objectUrl} alt={alt} className={className} />;
 }
 
-export function PageHeader({ title, children }: { title: string; children?: ReactNode }) {
+export function PageHeader({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children?: ReactNode;
+}) {
   return (
-    <div className="mb-6 flex items-center justify-between">
-      <h1 className="text-xl font-semibold text-slate-900">{title}</h1>
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
+        {description ? (
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
       {children}
     </div>
   );

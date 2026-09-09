@@ -106,7 +106,9 @@ test("inbox filters by property and by tenant", async ({ browser }) => {
   await landlordPage.waitForURL("/inbox");
   await expect(landlordPage.locator("text=Issue from tenant A")).toBeVisible();
 
-  await landlordPage.selectOption("select >> nth=1", { label: tenantBName });
+  // Second combobox is the tenant filter (first is property).
+  await landlordPage.getByRole("combobox").nth(1).click();
+  await landlordPage.getByRole("option", { name: tenantBName }).click();
   await expect(landlordPage.locator("text=Issue from tenant A")).toHaveCount(0);
 
   await landlordContext.close();

@@ -3,10 +3,19 @@
 import { use, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, DoorOpen, Users } from "lucide-react";
+import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Tenant } from "@/lib/types";
-import { Button, Card, ErrorText, Input, PageHeader } from "@/components/ui";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { EmptyState } from "@/components/empty-state";
+import { DetailSkeleton } from "@/components/skeletons";
+import { ErrorText, PageHeader } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function TenantDetailPage(props: PageProps<"/tenants/[tenantId]">) {
   const { tenantId } = use(props.params);
@@ -56,85 +65,138 @@ export default function TenantDetailPage(props: PageProps<"/tenants/[tenantId]">
         json: { name, email, phone: phone || null },
       });
       await loadTenant();
+      toast.success("Changes saved");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to update tenant");
+      const message = err instanceof ApiError ? err.message : "Failed to update tenant";
+      setError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this tenant?")) return;
-    await apiFetch(`/tenants/${tenantId}`, { method: "DELETE" });
-    router.replace("/tenants");
+    try {
+      await apiFetch(`/tenants/${tenantId}`, { method: "DELETE" });
+      toast.success("Tenant deleted");
+      router.replace("/tenants");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to delete tenant");
+    }
   }
 
   if (notFound) {
     return (
-      <div>
-        <p className="text-sm text-slate-600">This tenant doesn&apos;t exist.</p>
-        <Link href="/tenants" className="text-sm font-medium text-slate-900 underline">
-          Back to tenants
-        </Link>
-      </div>
+      <EmptyState
+        icon={Users}
+        title="Tenant not found"
+        description="This tenant doesn't exist or you don't have access to them."
+        action={
+          <Button asChild variant="outline">
+            <Link href="/tenants">
+              <ArrowLeft className="size-4" />
+              Back to tenants
+            </Link>
+          </Button>
+        }
+      />
     );
   }
 
   if (loading || !tenant) {
-    return <p className="text-sm text-slate-500">Loading...</p>;
+    return <DetailSkeleton />;
   }
 
   return (
     <div>
-      <PageHeader title={tenant.name}>
-        <Link href="/tenants" className="text-sm font-medium text-slate-600 underline">
+      <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3 text-muted-foreground">
+        <Link href="/tenants">
+          <ArrowLeft className="size-4" />
           Back to tenants
         </Link>
-      </PageHeader>
+      </Button>
 
-      <Card className="mb-6 max-w-md">
-        <form onSubmit={handleUpdate} className="flex flex-col gap-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Name</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Email</label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Phone</label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <ErrorText>{error}</ErrorText>
-          <div className="flex gap-2">
-            <Button type="submit" disabled={submitting}>
-              Save
-            </Button>
-            <Button type="button" variant="danger" onClick={handleDelete}>
-              Delete Tenant
-            </Button>
-          </div>
-        </form>
-      </Card>
+      <PageHeader title={tenant.name} description={tenant.email} />
 
-      <p className="text-sm text-slate-600">
-        {tenant.unit_id ? (
-          <>
-            Currently assigned to{" "}
-            <Link href={`/units/${tenant.unit_id}`} className="font-medium underline">
-              unit #{tenant.unit_id}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,28rem)_1fr]">
+        <Card className="p-6">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">Contact details</h2>
+          <form onSubmit={handleUpdate} className="flex flex-col gap-4">
+            <div>
+              <Label htmlFor="tenant-name" className="mb-2">
+                Name
+              </Label>
+              <Input
+                id="tenant-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="tenant-email" className="mb-2">
+                Email
+              </Label>
+              <Input
+                id="tenant-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="tenant-phone" className="mb-2">
+                Phone
+              </Label>
+              <Input
+                id="tenant-phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Optional"
+              />
+            </div>
+            <ErrorText>{error}</ErrorText>
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Saving..." : "Save changes"}
+              </Button>
+              <ConfirmDialog
+                title="Delete this tenant?"
+                description="This permanently removes the tenant record. This can't be undone."
+                confirmLabel="Delete tenant"
+                onConfirm={handleDelete}
+                trigger={
+                  <Button type="button" variant="destructive-soft">
+                    Delete tenant
+                  </Button>
+                }
+              />
+            </div>
+          </form>
+        </Card>
+
+        <Card className="h-fit p-6">
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Current unit</h2>
+          {tenant.unit_id ? (
+            <Link
+              href={`/units/${tenant.unit_id}`}
+              className="flex items-center gap-3 rounded-lg bg-muted/60 px-4 py-3 transition-colors hover:bg-muted"
+            >
+              <span className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <DoorOpen className="size-4" />
+              </span>
+              <span className="text-sm font-medium text-primary">
+                Unit #{tenant.unit_id}
+              </span>
             </Link>
-          </>
-        ) : (
-          "No active lease — assign this tenant to a unit from that unit's page."
-        )}
-      </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No active lease. Assign this tenant from a unit&apos;s page.
+            </p>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

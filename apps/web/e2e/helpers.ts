@@ -15,11 +15,14 @@ export function uniqueName(prefix: string): string {
 
 export async function signupLandlord(page: Page, email: string, name = "E2E Landlord") {
   await page.goto("/signup");
-  await page.fill('input[placeholder="Name"]', name);
-  await page.fill('input[placeholder="Email"]', email);
-  await page.fill('input[placeholder="Password (min 8 characters)"]', "e2etestpass123");
+  await page.getByLabel("Name").fill(name);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill("e2etestpass123");
   await page.click('button[type="submit"]');
-  await page.waitForURL("/properties");
+  // Signup lands on the dashboard home; every helper below starts from the
+  // properties list, so go there.
+  await page.waitForURL("/");
+  await page.goto("/properties");
 }
 
 export async function createProperty(page: Page, name: string, address = "1 Test St") {
@@ -46,6 +49,13 @@ export async function createTenant(page: Page, name: string, email: string) {
   await page.waitForSelector(`text=${name}`);
 }
 
+/** The tenant picker is a Radix listbox, not a native <select> — it renders a
+ * combobox trigger plus portalled options. */
+export async function selectTenant(page: Page, tenantName: string) {
+  await page.getByRole("combobox").click();
+  await page.getByRole("option", { name: tenantName }).click();
+}
+
 export async function createLeaseFromPropertiesPage(
   page: Page,
   propertyName: string,
@@ -59,7 +69,7 @@ export async function createLeaseFromPropertiesPage(
   await page.waitForURL(/\/properties\/\d+/);
   await page.click(`text=${unitLabel}`);
   await page.waitForURL(/\/units\/\d+/);
-  await page.selectOption("select", { label: tenantName });
+  await selectTenant(page, tenantName);
   await page.locator('input[type="date"]').fill("2026-01-01");
   await page.fill('input[type="number"]', rent);
   await page.click('button:has-text("Create Lease")');

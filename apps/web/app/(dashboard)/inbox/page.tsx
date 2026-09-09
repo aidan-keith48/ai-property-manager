@@ -2,10 +2,25 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Inbox as InboxIcon, MessageSquare } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
 import type { InboxSubmissionItem, Property, Tenant } from "@/lib/types";
-import { Card, PageHeader } from "@/components/ui";
+import { EmptyState } from "@/components/empty-state";
+import { ListItem, StaggerList } from "@/components/motion";
+import { CardListSkeleton } from "@/components/skeletons";
+import { SubmissionStatusBadge } from "@/components/status-badge";
+import { PageHeader } from "@/components/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Radix Select reserves "" as a value, so "all" is the sentinel for no filter.
+const ALL = "all";
 
 function timeAgo(iso: string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -18,18 +33,12 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
-const statusStyles: Record<string, string> = {
-  open: "bg-amber-100 text-amber-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  resolved: "bg-green-100 text-green-800",
-};
-
 export default function InboxPage() {
   const [items, setItems] = useState<InboxSubmissionItem[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [propertyFilter, setPropertyFilter] = useState("");
-  const [tenantFilter, setTenantFilter] = useState("");
+  const [propertyFilter, setPropertyFilter] = useState(ALL);
+  const [tenantFilter, setTenantFilter] = useState(ALL);
   const [loading, setLoading] = useState(true);
 
   async function loadFilters() {
@@ -44,8 +53,8 @@ export default function InboxPage() {
   async function loadInbox() {
     setLoading(true);
     const params = new URLSearchParams();
-    if (propertyFilter) params.set("property_id", propertyFilter);
-    if (tenantFilter) params.set("tenant_id", tenantFilter);
+    if (propertyFilter !== ALL) params.set("property_id", propertyFilter);
+    if (tenantFilter !== ALL) params.set("tenant_id", tenantFilter);
     const query = params.toString() ? `?${params.toString()}` : "";
     setItems(await apiFetch<InboxSubmissionItem[]>(`/inbox${query}`));
     setLoading(false);
@@ -62,74 +71,90 @@ export default function InboxPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyFilter, tenantFilter]);
 
+  const isFiltered = propertyFilter !== ALL || tenantFilter !== ALL;
+
   return (
     <div>
-      <PageHeader title="Inbox" />
+      <PageHeader
+        title="Inbox"
+        description="Everything your tenants have reported, in one place."
+      />
 
-      <div className="mb-4 flex gap-3">
-        <select
-          value={propertyFilter}
-          onChange={(e) => setPropertyFilter(e.target.value)}
-          className="rounded border border-slate-300 px-3 py-1.5 text-sm"
-        >
-          <option value="">All properties</option>
-          {properties.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={tenantFilter}
-          onChange={(e) => setTenantFilter(e.target.value)}
-          className="rounded border border-slate-300 px-3 py-1.5 text-sm"
-        >
-          <option value="">All tenants</option>
-          {tenants.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+      <div className="mb-6 flex flex-wrap gap-3">
+        <Select value={propertyFilter} onValueChange={setPropertyFilter}>
+          <SelectTrigger aria-label="Filter by property">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All properties</SelectItem>
+            {properties.map((p) => (
+              <SelectItem key={p.id} value={String(p.id)}>
+                {p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={tenantFilter} onValueChange={setTenantFilter}>
+          <SelectTrigger aria-label="Filter by tenant">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All tenants</SelectItem>
+            {tenants.map((t) => (
+              <SelectItem key={t.id} value={String(t.id)}>
+                {t.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading...</p>
+        <CardListSkeleton count={4} className="space-y-3" />
       ) : items.length === 0 ? (
-        <p className="text-sm text-slate-500">No submissions yet.</p>
+        <EmptyState
+          icon={InboxIcon}
+          title={isFiltered ? "No submissions match these filters" : "No submissions yet"}
+          description={
+            isFiltered
+              ? "Try clearing a filter to see more."
+              : "When a tenant reports an issue from the portal, it lands here."
+          }
+        />
       ) : (
-        <div className="flex flex-col gap-2">
+        <StaggerList className="space-y-3">
           {items.map((item) => (
-            <Link key={item.id} href={`/inbox/${item.id}`}>
-              <Card className="transition hover:border-slate-400">
-                <div className="flex items-start justify-between gap-3">
+            <ListItem key={item.id}>
+              <Link
+                href={`/inbox/${item.id}`}
+                className="block rounded-xl bg-card p-5 shadow-soft transition-shadow hover:shadow-lift"
+              >
+                <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900">{item.tenant_name}</span>
-                      <span className="text-xs text-slate-500">
-                        {item.property_name} · Unit {item.unit_label}
-                      </span>
-                    </div>
-                    <p className="mt-1 truncate text-sm text-slate-700">{item.description}</p>
+                    <p className="font-semibold text-foreground">{item.tenant_name}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {item.property_name} · Unit {item.unit_label}
+                    </p>
+                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                      {item.description}
+                    </p>
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span
-                      className={`rounded px-2 py-0.5 text-xs font-medium ${statusStyles[item.status]}`}
-                    >
-                      {item.status.replace("_", " ")}
-                    </span>
-                    <span className="text-xs text-slate-400">
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <SubmissionStatusBadge status={item.status} />
+                    <span className="text-xs text-muted-foreground">
                       {timeAgo(item.last_activity_at)}
                     </span>
-                    <span className="text-xs text-slate-400">
-                      {item.message_count} message{item.message_count === 1 ? "" : "s"}
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <MessageSquare className="size-3" />
+                      {item.message_count}
                     </span>
                   </div>
                 </div>
-              </Card>
-            </Link>
+              </Link>
+            </ListItem>
           ))}
-        </div>
+        </StaggerList>
       )}
     </div>
   );

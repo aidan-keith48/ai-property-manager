@@ -2,9 +2,15 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { MailCheck } from "lucide-react";
 
 import { apiFetch, ApiError } from "@/lib/api";
-import { Button, Card, ErrorText, Input } from "@/components/ui";
+import { ErrorText } from "@/components/ui";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function PortalRequestLinkPage() {
   const [email, setEmail] = useState("");
@@ -31,47 +37,63 @@ export default function PortalRequestLinkPage() {
     }
   }
 
-  return (
-    <Card className="mx-auto max-w-sm">
-      <h1 className="mb-4 text-lg font-semibold text-slate-900">Report an issue</h1>
-      {sent ? (
-        <div className="text-sm text-slate-700">
-          <p>
-            If that email is registered, we&apos;ve sent a sign-in link — check your inbox.
-          </p>
-          {devToken && (
-            <div className="mt-4 rounded border border-amber-300 bg-amber-50 p-3">
-              <p className="mb-2 text-xs font-medium text-amber-800">
-                Dev mode — no email provider is configured yet, so here&apos;s the link directly:
-              </p>
-              <Link
-                href={`/portal/verify?token=${encodeURIComponent(devToken)}`}
-                className="break-all text-sm font-medium text-amber-900 underline"
-              >
+  if (sent) {
+    return (
+      <Card className="p-6">
+        <div className="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+          <MailCheck className="size-5" />
+        </div>
+        <h1 className="mt-4 text-xl font-bold tracking-tight text-foreground">
+          Check your inbox
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          If that email is registered, we&apos;ve sent you a sign-in link. It expires shortly,
+          so use it soon.
+        </p>
+
+        {devToken && (
+          <div className="mt-6 rounded-lg border border-dashed border-status-open-foreground/40 bg-status-open/40 p-4">
+            <Badge className="bg-status-open text-status-open-foreground">Dev only</Badge>
+            <p className="mt-2 text-xs text-muted-foreground">
+              No email provider is configured yet, so here&apos;s the link directly:
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-3">
+              <Link href={`/portal/verify?token=${encodeURIComponent(devToken)}`}>
                 Continue to submission form
               </Link>
-            </div>
-          )}
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <p className="text-sm text-slate-600">
-            Enter your email and we&apos;ll send you a link to report a maintenance issue —
-            no password needed.
-          </p>
+            </Button>
+          </div>
+        )}
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6">
+      <h1 className="text-xl font-bold tracking-tight text-foreground">Report an issue</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Enter your email and we&apos;ll send you a link — no password needed.
+      </p>
+
+      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+        <div>
+          <Label htmlFor="tenant-email" className="mb-2">
+            Email
+          </Label>
           <Input
+            id="tenant-email"
             type="email"
-            placeholder="Email"
+            placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          <ErrorText>{error}</ErrorText>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Sending..." : "Send me a link"}
-          </Button>
-        </form>
-      )}
+        </div>
+        <ErrorText>{error}</ErrorText>
+        <Button type="submit" size="lg" disabled={submitting}>
+          {submitting ? "Sending..." : "Send me a link"}
+        </Button>
+      </form>
     </Card>
   );
 }

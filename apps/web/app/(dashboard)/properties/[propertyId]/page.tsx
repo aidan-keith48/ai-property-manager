@@ -2,11 +2,20 @@
 
 import { use, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { ArrowLeft, DoorOpen, MapPin, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Property, Unit } from "@/lib/types";
 import { ActivityLog } from "@/components/activity-log";
-import { Button, Card, ErrorText, Input, PageHeader } from "@/components/ui";
+import { EmptyState } from "@/components/empty-state";
+import { ListItem, StaggerList } from "@/components/motion";
+import { DetailSkeleton } from "@/components/skeletons";
+import { ErrorText, PageHeader } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function PropertyDetailPage(props: PageProps<"/properties/[propertyId]">) {
   const { propertyId } = use(props.params);
@@ -64,8 +73,11 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
       setBedrooms("");
       setBathrooms("");
       await loadData();
+      toast.success("Unit added");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to create unit");
+      const message = err instanceof ApiError ? err.message : "Failed to create unit";
+      setError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -73,40 +85,58 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
 
   if (notFound) {
     return (
-      <div>
-        <p className="text-sm text-slate-600">
-          This property doesn&apos;t exist or you don&apos;t have access to it.
-        </p>
-        <Link href="/properties" className="text-sm font-medium text-slate-900 underline">
-          Back to properties
-        </Link>
-      </div>
+      <EmptyState
+        icon={MapPin}
+        title="Property not found"
+        description="This property doesn't exist or you don't have access to it."
+        action={
+          <Button asChild variant="outline">
+            <Link href="/properties">
+              <ArrowLeft className="size-4" />
+              Back to properties
+            </Link>
+          </Button>
+        }
+      />
     );
   }
 
   if (loading || !property) {
-    return <p className="text-sm text-slate-500">Loading...</p>;
+    return <DetailSkeleton />;
   }
 
   return (
     <div>
-      <PageHeader title={property.name}>
-        <Link href="/properties" className="text-sm font-medium text-slate-600 underline">
+      <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3 text-muted-foreground">
+        <Link href="/properties">
+          <ArrowLeft className="size-4" />
           Back to properties
         </Link>
-      </PageHeader>
-      <p className="mb-6 text-sm text-slate-600">{property.address}</p>
+      </Button>
 
-      <Card className="mb-6">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">Add Unit</h2>
-        <form onSubmit={handleCreateUnit} className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-32">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Unit label</label>
-            <Input value={label} onChange={(e) => setLabel(e.target.value)} required />
+      <PageHeader title={property.name} description={property.address} />
+
+      <Card className="mb-8 p-6">
+        <h2 className="mb-4 text-sm font-semibold text-foreground">Add a unit</h2>
+        <form onSubmit={handleCreateUnit} className="flex flex-wrap items-end gap-4">
+          <div className="min-w-32 flex-1">
+            <Label htmlFor="unit-label" className="mb-2">
+              Unit label
+            </Label>
+            <Input
+              id="unit-label"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="3B"
+              required
+            />
           </div>
           <div className="w-24">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Bedrooms</label>
+            <Label htmlFor="unit-bedrooms" className="mb-2">
+              Bedrooms
+            </Label>
             <Input
+              id="unit-bedrooms"
               type="number"
               min={0}
               value={bedrooms}
@@ -114,8 +144,11 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
             />
           </div>
           <div className="w-24">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Bathrooms</label>
+            <Label htmlFor="unit-bathrooms" className="mb-2">
+              Bathrooms
+            </Label>
             <Input
+              id="unit-bathrooms"
               type="number"
               min={0}
               value={bathrooms}
@@ -123,31 +156,39 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
             />
           </div>
           <Button type="submit" disabled={submitting}>
-            Add Unit
+            <Plus className="size-4" />
+            {submitting ? "Adding..." : "Add unit"}
           </Button>
         </form>
         <ErrorText>{error}</ErrorText>
       </Card>
 
-      <h2 className="mb-3 text-sm font-semibold text-slate-900">Units</h2>
+      <h2 className="mb-4 text-lg font-semibold text-foreground">Units</h2>
       {units.length === 0 ? (
-        <p className="text-sm text-slate-500">No units yet.</p>
+        <EmptyState
+          icon={DoorOpen}
+          title="No units yet"
+          description="Add the first unit to this property using the form above."
+        />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <StaggerList className="grid gap-4 sm:grid-cols-2">
           {units.map((unit) => (
-            <Link key={unit.id} href={`/units/${unit.id}`}>
-              <Card className="transition hover:border-slate-400">
-                <h3 className="font-medium text-slate-900">{unit.unit_label}</h3>
-                <p className="text-sm text-slate-600">
-                  {unit.bedrooms ?? "?"} bed / {unit.bathrooms ?? "?"} bath
+            <ListItem key={unit.id}>
+              <Link
+                href={`/units/${unit.id}`}
+                className="block h-full rounded-xl bg-card p-5 shadow-soft transition-shadow hover:shadow-lift"
+              >
+                <h3 className="font-semibold text-foreground">{unit.unit_label}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {unit.bedrooms ?? "?"} bed · {unit.bathrooms ?? "?"} bath
                 </p>
-              </Card>
-            </Link>
+              </Link>
+            </ListItem>
           ))}
-        </div>
+        </StaggerList>
       )}
 
-      <h2 className="mb-3 mt-6 text-sm font-semibold text-slate-900">Activity</h2>
+      <h2 className="mt-10 mb-4 text-lg font-semibold text-foreground">Activity</h2>
       <ActivityLog fetchPath={`/properties/${propertyId}/activity`} />
     </div>
   );

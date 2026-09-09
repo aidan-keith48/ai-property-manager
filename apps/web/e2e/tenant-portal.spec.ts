@@ -36,7 +36,7 @@ test("tenant submits an issue with a photo and sees a confirmation", async ({ br
   await tenantPage.click('button:has-text("Submit")');
 
   await expect(tenantPage.locator("text=Thanks — we've got it")).toBeVisible();
-  await expect(tenantPage.locator("text=/Your submission \\(#\\d+\\)/")).toBeVisible();
+  await expect(tenantPage.locator("text=/Your report \\(#\\d+\\)/")).toBeVisible();
 
   await landlordContext.close();
   await tenantContext.close();
