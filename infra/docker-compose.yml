@@ -6,7 +6,9 @@ services:
       POSTGRES_PASSWORD: apm_dev_password
       POSTGRES_DB: apm_dev
     ports:
-      - "5432:5432"
+      # Host port 5433, not 5432 — 5432 may already be bound by another
+      # project's Postgres container on this machine.
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +20,9 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      # Host port 6380, not 6379 — 6379 may already be bound by another
+      # project's Redis container on this machine.
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
