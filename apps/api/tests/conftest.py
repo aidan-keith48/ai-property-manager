@@ -16,6 +16,8 @@ from app.config import settings  # noqa: E402
 from app.db import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Base  # noqa: E402
+from app.storage import get_storage  # noqa: E402
+from app.storage.local import LocalStorageBackend  # noqa: E402
 
 engine = create_engine(settings.database_url)
 TestSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -40,10 +42,30 @@ def db_session():
 
 
 @pytest.fixture
-def client(db_session):
+def client(db_session, tmp_path):
     def _get_db_override():
         yield db_session
 
+    # Never write test uploads into the real local uploads/ folder.
+    test_storage = LocalStorageBackend(str(tmp_path / "uploads"))
+
     app.dependency_overrides[get_db] = _get_db_override
+    app.dependency_overrides[get_storage] = lambda: test_storage
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def landlord_token(client):
+    """Signs up a fresh landlord and returns an Authorization header dict."""
+
+    def _make(email: str = "crud-landlord@example.com") -> dict[str, str]:
+        resp = client.post(
+            "/auth/landlord/signup",
+            json={"email": email, "password": "supersecret123", "name": "CRUD Landlord"},
+        )
+        assert resp.status_code == 201, resp.text
+        token = resp.json()["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+
+    return _make
