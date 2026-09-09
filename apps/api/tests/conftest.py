@@ -16,6 +16,7 @@ from app.config import settings  # noqa: E402
 from app.db import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Base  # noqa: E402
+from app.ratelimit import get_redis  # noqa: E402
 from app.storage import get_storage  # noqa: E402
 from app.storage.local import LocalStorageBackend  # noqa: E402
 
@@ -28,6 +29,18 @@ def _test_schema():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """Rate-limit counters live in Redis, outside the Postgres
+    transaction-rollback isolation db_session gives each test — without
+    this, tests would share counters via the TestClient's fixed fake IP
+    and later tests would start failing with 429s depending on run order."""
+    redis_client = get_redis()
+    for key in redis_client.scan_iter("ratelimit:*"):
+        redis_client.delete(key)
+    yield
 
 
 @pytest.fixture

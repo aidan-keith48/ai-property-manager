@@ -9,6 +9,7 @@ from app.auth.security import create_access_token, hash_password, verify_passwor
 from app.config import settings
 from app.db import get_db
 from app.models import Landlord, MagicLink, Tenant
+from app.ratelimit import rate_limit
 from app.schemas.auth import (
     LandlordLoginRequest,
     LandlordMeResponse,
@@ -60,7 +61,11 @@ def landlord_me(landlord: Landlord = Depends(require_landlord)) -> LandlordMeRes
     return LandlordMeResponse(id=landlord.id, email=landlord.email, name=landlord.name)
 
 
-@router.post("/tenant/magic-link/request", response_model=MagicLinkRequestResponse)
+@router.post(
+    "/tenant/magic-link/request",
+    response_model=MagicLinkRequestResponse,
+    dependencies=[Depends(rate_limit("magic_link_request", max_requests=5, window_seconds=900))],
+)
 def request_magic_link(
     payload: MagicLinkRequest, db: Session = Depends(get_db)
 ) -> MagicLinkRequestResponse:
@@ -88,7 +93,11 @@ def request_magic_link(
     return MagicLinkRequestResponse(message="If that email is registered, a magic link was sent")
 
 
-@router.post("/tenant/magic-link/verify", response_model=TokenResponse)
+@router.post(
+    "/tenant/magic-link/verify",
+    response_model=TokenResponse,
+    dependencies=[Depends(rate_limit("magic_link_verify", max_requests=10, window_seconds=900))],
+)
 def verify_magic_link(
     payload: MagicLinkVerifyRequest, db: Session = Depends(get_db)
 ) -> TokenResponse:

@@ -40,14 +40,18 @@ engineering plan, data model, and milestone breakdown.
 
 ## Status
 
-Phase 1 (MVP) in progress — building in strict milestone order per
-[`docs/engineering-plan.md`](docs/engineering-plan.md) §5. No AI features are
-implemented in Phase 1.
+Phase 1 (MVP) complete — all 10 milestones in
+[`docs/engineering-plan.md`](docs/engineering-plan.md) §5 shipped in strict
+order. No AI features are implemented in Phase 1 (that's Phase 2, Epics
+C/D/E/G/H2/J).
 
 ## Compliance
 
 Tenant/lease data handling is designed around POPIA (South Africa's data
-protection law) from day one — see `docs/prd.md` §11 and
+protection law) from day one — see `docs/prd.md` §11,
 [`docs/compliance-lease-documents.md`](docs/compliance-lease-documents.md)
-for the Milestone 5 checkpoint (encryption at rest, access logging,
-retention/deletion) on lease documents specifically.
+(Milestone 5: lease documents specifically), and
+[`docs/popia-review.md`](docs/popia-review.md) (Milestone 10: the full
+access-control review across every entity, plus tenant-portal rate
+limiting). Two items remain open by design — pending a product/legal
+decision, not an engineering gap — see `docs/popia-review.md` §3 and §5.

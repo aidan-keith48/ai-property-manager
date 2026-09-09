@@ -17,6 +17,7 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [documents, setDocuments] = useState<LeaseDocument[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -27,23 +28,32 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
 
   async function loadData() {
     setLoading(true);
-    const [unitData, leases, tenantsData] = await Promise.all([
-      apiFetch<Unit>(`/units/${unitId}`),
-      apiFetch<Lease[]>("/leases"),
-      apiFetch<Tenant[]>("/tenants"),
-    ]);
-    setUnit(unitData);
-    setTenants(tenantsData);
+    try {
+      const [unitData, leases, tenantsData] = await Promise.all([
+        apiFetch<Unit>(`/units/${unitId}`),
+        apiFetch<Lease[]>("/leases"),
+        apiFetch<Tenant[]>("/tenants"),
+      ]);
+      setUnit(unitData);
+      setTenants(tenantsData);
 
-    const lease = leases.find((l) => l.unit_id === unitIdNum && l.status === "active") ?? null;
-    setActiveLease(lease);
+      const lease = leases.find((l) => l.unit_id === unitIdNum && l.status === "active") ?? null;
+      setActiveLease(lease);
 
-    if (lease) {
-      setDocuments(await apiFetch<LeaseDocument[]>(`/leases/${lease.id}/documents`));
-    } else {
-      setDocuments([]);
+      if (lease) {
+        setDocuments(await apiFetch<LeaseDocument[]>(`/leases/${lease.id}/documents`));
+      } else {
+        setDocuments([]);
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setNotFound(true);
+      } else {
+        throw err;
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   useEffect(() => {
@@ -108,6 +118,19 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
     if (!confirm("Delete this document?")) return;
     await apiFetch(`/leases/${activeLease.id}/documents/${documentId}`, { method: "DELETE" });
     await loadData();
+  }
+
+  if (notFound) {
+    return (
+      <div>
+        <p className="text-sm text-slate-600">
+          This unit doesn&apos;t exist or you don&apos;t have access to it.
+        </p>
+        <Link href="/properties" className="text-sm font-medium text-slate-900 underline">
+          Back to properties
+        </Link>
+      </div>
+    );
   }
 
   if (loading || !unit) {

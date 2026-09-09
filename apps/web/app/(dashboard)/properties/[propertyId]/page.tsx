@@ -14,6 +14,7 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
   const [property, setProperty] = useState<Property | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [label, setLabel] = useState("");
   const [bedrooms, setBedrooms] = useState("");
   const [bathrooms, setBathrooms] = useState("");
@@ -22,13 +23,22 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
 
   async function loadData() {
     setLoading(true);
-    const [propertyData, unitsData] = await Promise.all([
-      apiFetch<Property>(`/properties/${propertyId}`),
-      apiFetch<Unit[]>(`/properties/${propertyId}/units`),
-    ]);
-    setProperty(propertyData);
-    setUnits(unitsData);
-    setLoading(false);
+    try {
+      const [propertyData, unitsData] = await Promise.all([
+        apiFetch<Property>(`/properties/${propertyId}`),
+        apiFetch<Unit[]>(`/properties/${propertyId}/units`),
+      ]);
+      setProperty(propertyData);
+      setUnits(unitsData);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setNotFound(true);
+      } else {
+        throw err;
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -59,6 +69,19 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (notFound) {
+    return (
+      <div>
+        <p className="text-sm text-slate-600">
+          This property doesn&apos;t exist or you don&apos;t have access to it.
+        </p>
+        <Link href="/properties" className="text-sm font-medium text-slate-900 underline">
+          Back to properties
+        </Link>
+      </div>
+    );
   }
 
   if (loading || !property) {

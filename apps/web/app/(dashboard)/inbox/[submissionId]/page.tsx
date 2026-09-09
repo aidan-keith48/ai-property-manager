@@ -12,14 +12,24 @@ export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]"
 
   const [detail, setDetail] = useState<InboxSubmissionDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [reply, setReply] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function loadDetail() {
     setLoading(true);
-    setDetail(await apiFetch<InboxSubmissionDetail>(`/inbox/${submissionId}`));
-    setLoading(false);
+    try {
+      setDetail(await apiFetch<InboxSubmissionDetail>(`/inbox/${submissionId}`));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setNotFound(true);
+      } else {
+        throw err;
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -44,6 +54,19 @@ export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]"
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (notFound) {
+    return (
+      <div>
+        <p className="text-sm text-slate-600">
+          This submission doesn&apos;t exist or you don&apos;t have access to it.
+        </p>
+        <Link href="/inbox" className="text-sm font-medium text-slate-900 underline">
+          Back to inbox
+        </Link>
+      </div>
+    );
   }
 
   if (loading || !detail) {

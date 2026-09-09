@@ -41,6 +41,13 @@ out/
 *~
 .DS_Store
 
+# Local Claude Code tool state (not part of the app)
+.claude/
+
+# Playwright e2e artifacts
+apps/web/test-results/
+apps/web/playwright-report/
+
 # Environment
 .env
 .env.local

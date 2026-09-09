@@ -17,17 +17,27 @@ export default function TenantDetailPage(props: PageProps<"/tenants/[tenantId]">
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function loadTenant() {
     setLoading(true);
-    const data = await apiFetch<Tenant>(`/tenants/${tenantId}`);
-    setTenant(data);
-    setName(data.name);
-    setEmail(data.email);
-    setPhone(data.phone ?? "");
-    setLoading(false);
+    try {
+      const data = await apiFetch<Tenant>(`/tenants/${tenantId}`);
+      setTenant(data);
+      setName(data.name);
+      setEmail(data.email);
+      setPhone(data.phone ?? "");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setNotFound(true);
+      } else {
+        throw err;
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -57,6 +67,17 @@ export default function TenantDetailPage(props: PageProps<"/tenants/[tenantId]">
     if (!confirm("Delete this tenant?")) return;
     await apiFetch(`/tenants/${tenantId}`, { method: "DELETE" });
     router.replace("/tenants");
+  }
+
+  if (notFound) {
+    return (
+      <div>
+        <p className="text-sm text-slate-600">This tenant doesn&apos;t exist.</p>
+        <Link href="/tenants" className="text-sm font-medium text-slate-900 underline">
+          Back to tenants
+        </Link>
+      </div>
+    );
   }
 
   if (loading || !tenant) {

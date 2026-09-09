@@ -9,6 +9,7 @@ from app.audit import log_action, unit_context
 from app.auth.dependencies import get_current_principal, require_tenant
 from app.db import get_db
 from app.models import ActorType, CommunicationLog, Property, Submission, Tenant, Unit
+from app.ratelimit import rate_limit
 from app.schemas.submission import SubmissionMessageRead, SubmissionRead
 from app.storage import get_storage
 from app.storage.base import StorageBackend
@@ -20,7 +21,12 @@ ACKNOWLEDGMENT_MESSAGE = (
 )
 
 
-@router.post("", response_model=SubmissionRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=SubmissionRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("submission_create", max_requests=20, window_seconds=3600))],
+)
 async def create_submission(
     description: str = Form(...),
     photos: list[UploadFile] = File(default=[]),
