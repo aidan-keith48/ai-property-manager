@@ -6,9 +6,12 @@ drafts, classifies, and suggests; the landlord always approves, sends, and
 decides. Manual mode with zero AI features is a first-class, fully functional
 mode, not a degraded fallback.
 
-See [`docs/prd.md`](docs/prd.md) for the full product requirements and
+See [`docs/prd.md`](docs/prd.md) for the full product requirements,
 [`docs/engineering-plan.md`](docs/engineering-plan.md) for the Phase 1
-engineering plan, data model, and milestone breakdown.
+engineering plan, data model, and milestone breakdown, and
+[`docs/system-overview.md`](docs/system-overview.md) for a walkthrough of
+how the whole system actually works, end to end — from landlord signup
+through every feature.
 
 ## Repo structure
 
