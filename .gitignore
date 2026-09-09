@@ -33,8 +33,10 @@ node_modules/
 out/
 .turbo/
 
-# IDE
-.vscode/
+# IDE — settings.json is committed on purpose: it carries the Start/Stop
+# action buttons, which are part of how you run this project.
+.vscode/*
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
@@ -59,3 +61,6 @@ docker-compose.override.yml
 
 # Celery
 celerybeat-schedule
+
+# Local dev server logs (scripts/dev-start.sh)
+.dev-logs/

@@ -25,21 +25,48 @@ through every feature.
 /infra
   docker-compose.yml — Postgres + Redis for local dev
   /env-templates
+/scripts
+  dev-start.sh, dev-stop.sh — run the whole stack (see "Running it")
 /docs
-  prd.md
-  engineering-plan.md
+  prd.md, engineering-plan.md — product spec + build plan
+  system-overview.md          — how the running system actually works
+  popia-review.md, compliance-lease-documents.md — data-protection reviews
 /uploads      — local filesystem storage (gitignored, Phase 1 only)
 ```
 
-## Local development
+## Running it
 
-1. Start Postgres + Redis:
-   ```
-   docker compose -f infra/docker-compose.yml up -d
-   ```
-2. Copy `.env.example` to `.env` in `apps/api` and `apps/worker`.
-3. API setup (Poetry): see `apps/api/README.md` (added in Milestone 2).
-4. Web setup (pnpm): see `apps/web/README.md` (added in Milestone 6).
+One command brings up the whole stack — Postgres + Redis, database
+migrations, the API, and the web app:
+
+```
+./scripts/dev-start.sh     # → http://localhost:3000
+./scripts/dev-stop.sh
+```
+
+Both are safe to re-run: starting twice leaves anything already running
+alone, and stopping preserves the database volume. First run also creates
+the `.env` files and installs dependencies.
+
+| | |
+|---|---|
+| Landlord dashboard | http://localhost:3000 |
+| Tenant portal | http://localhost:3000/portal |
+| API docs (Swagger) | http://localhost:8000/docs |
+| Logs | `.dev-logs/api.log`, `.dev-logs/web.log` |
+
+**In VSCode:** the same two scripts are wired to **▶ Start App** / **■ Stop
+App** buttons in the status bar, via the
+[VSCode Action Buttons](https://marketplace.visualstudio.com/items?itemName=seunlanlege.action-buttons)
+extension (`seunlanlege.action-buttons`) — install it and the buttons
+appear; the config is committed in `.vscode/settings.json`.
+
+Prerequisites: Docker Desktop, Poetry, and pnpm (Node 22). Per-app setup
+details are in [`apps/api/README.md`](apps/api/README.md) and
+[`apps/web/README.md`](apps/web/README.md).
+
+New to the codebase? [`docs/system-overview.md`](docs/system-overview.md)
+walks through what every part does.
 
 ## Status
 

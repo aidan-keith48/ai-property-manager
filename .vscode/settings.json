@@ -1,0 +1,27 @@
+{
+  "actionButtons": {
+    "defaultColor": "#cccccc",
+    "reloadButton": "↻",
+    "loadNpmCommands": false,
+    "commands": [
+      {
+        "name": "▶ Start App",
+        "tooltip": "Start Postgres + Redis, run migrations, then launch the API (:8000) and web app (:3000)",
+        "color": "#89d185",
+        "cwd": "${workspaceFolder}",
+        "singleInstance": true,
+        "focus": true,
+        "command": "./scripts/dev-start.sh"
+      },
+      {
+        "name": "■ Stop App",
+        "tooltip": "Stop the web app, the API, and the Postgres/Redis containers (database data is kept)",
+        "color": "#f48771",
+        "cwd": "${workspaceFolder}",
+        "singleInstance": true,
+        "focus": true,
+        "command": "./scripts/dev-stop.sh"
+      }
+    ]
+  }
+}
