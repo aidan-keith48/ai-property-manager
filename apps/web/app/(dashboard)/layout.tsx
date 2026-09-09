@@ -29,6 +29,9 @@ export default function DashboardLayout({ children }: LayoutProps<"/">) {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <nav className="flex gap-4 text-sm font-medium text-slate-700">
+            <Link href="/inbox" className="hover:text-slate-900">
+              Inbox
+            </Link>
             <Link href="/properties" className="hover:text-slate-900">
               Properties
             </Link>

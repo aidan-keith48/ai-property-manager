@@ -1,13 +1,15 @@
+import mimetypes
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
-from app.auth.dependencies import require_tenant
+from app.auth.dependencies import get_current_principal, require_tenant
 from app.db import get_db
-from app.models import ActorType, CommunicationLog, Submission, Tenant
-from app.schemas.submission import SubmissionRead
+from app.models import ActorType, CommunicationLog, Property, Submission, Tenant, Unit
+from app.schemas.submission import SubmissionMessageRead, SubmissionRead
 from app.storage import get_storage
 from app.storage.base import StorageBackend
 
@@ -86,3 +88,67 @@ def get_submission(
     if submission is None or submission.tenant_id != tenant.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Submission not found")
     return submission
+
+
+@router.get("/{submission_id}/messages", response_model=list[SubmissionMessageRead])
+def get_submission_messages(
+    submission_id: int,
+    tenant: Tenant = Depends(require_tenant),
+    db: Session = Depends(get_db),
+) -> list[CommunicationLog]:
+    """Read-only thread view for the tenant who owns this submission — the
+    acknowledgment message and any landlord replies (see
+    app/routers/inbox.py). Tenants cannot post into the thread in Phase 1;
+    only the landlord replies via the inbox."""
+    submission = db.get(Submission, submission_id)
+    if submission is None or submission.tenant_id != tenant.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Submission not found")
+    return (
+        db.query(CommunicationLog)
+        .filter(
+            CommunicationLog.related_entity_type == "submission",
+            CommunicationLog.related_entity_id == submission_id,
+        )
+        .order_by(CommunicationLog.timestamp.asc())
+        .all()
+    )
+
+
+def _get_submission_for_principal(db: Session, submission_id: int, principal: dict) -> Submission:
+    """Dual-role access: the tenant who owns the submission, or the
+    landlord who owns the property chain it belongs to."""
+    submission = db.get(Submission, submission_id)
+    if submission is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Submission not found")
+
+    role = principal.get("role")
+    if role == "tenant":
+        if submission.tenant_id != int(principal["sub"]):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Not authorized for this submission")
+    elif role == "landlord":
+        unit = db.get(Unit, submission.unit_id)
+        property_ = db.get(Property, unit.property_id) if unit is not None else None
+        if property_ is None or property_.landlord_id != int(principal["sub"]):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Not authorized for this submission")
+    else:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not authorized for this submission")
+
+    return submission
+
+
+@router.get("/{submission_id}/photos/{photo_index}")
+def get_submission_photo(
+    submission_id: int,
+    photo_index: int,
+    principal: dict = Depends(get_current_principal),
+    db: Session = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
+) -> Response:
+    submission = _get_submission_for_principal(db, submission_id, principal)
+    if photo_index < 0 or photo_index >= len(submission.photo_paths):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo not found")
+
+    path = submission.photo_paths[photo_index]
+    content = storage.read(path)
+    media_type = mimetypes.guess_type(path)[0] or "application/octet-stream"
+    return Response(content=content, media_type=media_type)

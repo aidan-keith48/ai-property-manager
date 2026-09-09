@@ -64,3 +64,37 @@ export interface Submission {
   created_at: string;
   updated_at: string;
 }
+
+export interface SubmissionMessage {
+  id: number;
+  channel: string;
+  direction: string;
+  content: string;
+  timestamp: string;
+}
+
+export interface InboxSubmissionItem {
+  id: number;
+  tenant_id: number;
+  tenant_name: string;
+  unit_id: number;
+  unit_label: string;
+  property_id: number;
+  property_name: string;
+  description: string;
+  status: SubmissionStatus;
+  classification: string | null;
+  urgency: string | null;
+  created_at: string;
+  message_count: number;
+  last_activity_at: string;
+}
+
+export interface InboxSubmissionDetail {
+  submission: Submission;
+  tenant_name: string;
+  unit_label: string;
+  property_name: string;
+  property_id: number;
+  messages: SubmissionMessage[];
+}

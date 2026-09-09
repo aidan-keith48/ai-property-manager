@@ -81,3 +81,18 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
   return payload as T;
 }
+
+/** For binary responses (e.g. submission photos) that need the
+ * Authorization header — a plain <img src> can't send custom headers, so
+ * callers fetch the blob and turn it into an object URL themselves. */
+export async function apiFetchBlob(path: string, tokenKey = TOKEN_STORAGE_KEY): Promise<Blob> {
+  const token = getStoredToken(tokenKey);
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_URL}${path}`, { headers });
+  if (!response.ok) {
+    throw new ApiError(response.status, `Request failed with status ${response.status}`);
+  }
+  return response.blob();
+}

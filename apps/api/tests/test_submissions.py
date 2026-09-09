@@ -140,3 +140,55 @@ def test_tenant_can_view_own_submission_but_not_others(client, landlord_token):
 
     other = client.get(f"/submissions/{submission_id}", headers=tenant_b_headers)
     assert other.status_code == 404
+
+
+def test_photo_viewable_by_owning_tenant_and_landlord(client, landlord_token):
+    headers = landlord_token()
+    tenant_headers = _make_tenant_with_lease(client, headers, "sub-tenant-photo@example.com")
+
+    resp = client.post(
+        "/submissions",
+        data={"description": "Cracked window"},
+        files={"photos": ("crack.jpg", io.BytesIO(b"fake-jpeg-bytes"), "image/jpeg")},
+        headers=tenant_headers,
+    )
+    submission_id = resp.json()["id"]
+
+    tenant_view = client.get(f"/submissions/{submission_id}/photos/0", headers=tenant_headers)
+    assert tenant_view.status_code == 200
+    assert tenant_view.content == b"fake-jpeg-bytes"
+    assert tenant_view.headers["content-type"] == "image/jpeg"
+
+    landlord_view = client.get(f"/submissions/{submission_id}/photos/0", headers=headers)
+    assert landlord_view.status_code == 200
+    assert landlord_view.content == b"fake-jpeg-bytes"
+
+
+def test_photo_not_viewable_by_unrelated_tenant(client, landlord_token):
+    headers = landlord_token()
+    tenant_a_headers = _make_tenant_with_lease(client, headers, "sub-tenant-photo-a@example.com")
+    tenant_b_headers = _make_tenant_with_lease(client, headers, "sub-tenant-photo-b@example.com")
+
+    resp = client.post(
+        "/submissions",
+        data={"description": "Issue"},
+        files={"photos": ("photo.jpg", io.BytesIO(b"bytes"), "image/jpeg")},
+        headers=tenant_a_headers,
+    )
+    submission_id = resp.json()["id"]
+
+    other = client.get(f"/submissions/{submission_id}/photos/0", headers=tenant_b_headers)
+    assert other.status_code == 403
+
+
+def test_photo_index_out_of_range_returns_404(client, landlord_token):
+    headers = landlord_token()
+    tenant_headers = _make_tenant_with_lease(client, headers, "sub-tenant-noindex@example.com")
+
+    resp = client.post(
+        "/submissions", data={"description": "No photos here"}, headers=tenant_headers
+    )
+    submission_id = resp.json()["id"]
+
+    missing = client.get(f"/submissions/{submission_id}/photos/0", headers=tenant_headers)
+    assert missing.status_code == 404
