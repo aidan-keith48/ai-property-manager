@@ -10,8 +10,10 @@ class LeaseDocument(Base):
     __tablename__ = "lease_documents"
 
     # POPIA note: may include ID copies — sensitive personal information.
-    # Access control + access logging on every read is a Milestone 5
-    # requirement (docs/engineering-plan.md §5), not yet implemented here.
+    # Access control + access logging on every read/write is implemented in
+    # app/routers/lease_documents.py (Milestone 5 checkpoint). See
+    # docs/compliance-lease-documents.md for the full stance (encryption at
+    # rest, access logging, retention/deletion).
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     lease_id: Mapped[int] = mapped_column(
         ForeignKey("leases.id", ondelete="CASCADE"), nullable=False, index=True

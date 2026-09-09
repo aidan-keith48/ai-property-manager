@@ -47,5 +47,7 @@ implemented in Phase 1.
 ## Compliance
 
 Tenant/lease data handling is designed around POPIA (South Africa's data
-protection law) from day one — see `docs/prd.md` §11 and the Phase 1
-milestone plan's dedicated compliance checkpoint (§5, Milestone 5).
+protection law) from day one — see `docs/prd.md` §11 and
+[`docs/compliance-lease-documents.md`](docs/compliance-lease-documents.md)
+for the Milestone 5 checkpoint (encryption at rest, access logging,
+retention/deletion) on lease documents specifically.
