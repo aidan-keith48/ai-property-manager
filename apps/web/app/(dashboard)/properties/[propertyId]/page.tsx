@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Property, Unit } from "@/lib/types";
+import { ActivityLog } from "@/components/activity-log";
 import { Button, Card, ErrorText, Input, PageHeader } from "@/components/ui";
 
 export default function PropertyDetailPage(props: PageProps<"/properties/[propertyId]">) {
@@ -122,6 +123,9 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
           ))}
         </div>
       )}
+
+      <h2 className="mb-3 mt-6 text-sm font-semibold text-slate-900">Activity</h2>
+      <ActivityLog fetchPath={`/properties/${propertyId}/activity`} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Lease, LeaseDocument, Tenant, Unit } from "@/lib/types";
+import { ActivityLog } from "@/components/activity-log";
 import { Button, Card, ErrorText, Input, PageHeader } from "@/components/ui";
 
 export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
@@ -231,6 +232,9 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
           <ErrorText>{error}</ErrorText>
         </Card>
       )}
+
+      <h2 className="mb-3 mt-6 text-sm font-semibold text-slate-900">Activity</h2>
+      <ActivityLog fetchPath={`/units/${unitId}/activity`} />
     </div>
   );
 }

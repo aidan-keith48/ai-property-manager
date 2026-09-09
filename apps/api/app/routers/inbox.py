@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.audit import log_action
+from app.audit import log_action, unit_context
 from app.auth.dependencies import require_landlord
 from app.crud.authz import get_owned_unit
 from app.db import get_db
@@ -157,7 +157,7 @@ def reply_to_submission(
         action="inbox.reply",
         entity_type="submission",
         entity_id=submission.id,
-        metadata={"message_id": message.id},
+        metadata={**unit_context(db, submission.unit_id), "message_id": message.id},
     )
 
     db.commit()

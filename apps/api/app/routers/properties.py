@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from app.audit import log_action
 from app.auth.dependencies import require_landlord
 from app.crud.authz import get_owned_property
 from app.db import get_db
-from app.models import Landlord, Property
+from app.models import ActorType, Landlord, Property
 from app.schemas.property import PropertyCreate, PropertyRead, PropertyUpdate
 
 router = APIRouter(prefix="/properties", tags=["properties"])
@@ -18,6 +19,18 @@ def create_property(
 ) -> Property:
     property_ = Property(landlord_id=landlord.id, name=payload.name, address=payload.address)
     db.add(property_)
+    db.flush()  # assign property_.id before it's referenced below
+
+    log_action(
+        db,
+        actor_type=ActorType.LANDLORD,
+        actor_id=landlord.id,
+        action="property.create",
+        entity_type="property",
+        entity_id=property_.id,
+        metadata={"property_id": property_.id},
+    )
+
     db.commit()
     db.refresh(property_)
     return property_
@@ -51,6 +64,17 @@ def update_property(
         property_.name = payload.name
     if payload.address is not None:
         property_.address = payload.address
+
+    log_action(
+        db,
+        actor_type=ActorType.LANDLORD,
+        actor_id=landlord.id,
+        action="property.update",
+        entity_type="property",
+        entity_id=property_.id,
+        metadata={"property_id": property_.id},
+    )
+
     db.commit()
     db.refresh(property_)
     return property_
@@ -63,5 +87,16 @@ def delete_property(
     db: Session = Depends(get_db),
 ) -> None:
     property_ = get_owned_property(db, property_id, landlord)
+
+    log_action(
+        db,
+        actor_type=ActorType.LANDLORD,
+        actor_id=landlord.id,
+        action="property.delete",
+        entity_type="property",
+        entity_id=property_.id,
+        metadata={"property_id": property_.id},
+    )
+
     db.delete(property_)
     db.commit()

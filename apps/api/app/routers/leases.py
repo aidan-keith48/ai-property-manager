@@ -34,6 +34,7 @@ def create_lease(
         start_date=payload.start_date,
         end_date=payload.end_date,
         rent_amount=payload.rent_amount,
+        actor_landlord_id=landlord.id,
     )
 
 
@@ -65,4 +66,4 @@ def end_lease(
     db: Session = Depends(get_db),
 ) -> Lease:
     lease = _get_owned_lease(db, lease_id, landlord)
-    return end_lease_record(db, lease, end_date=payload.end_date)
+    return end_lease_record(db, lease, end_date=payload.end_date, actor_landlord_id=landlord.id)

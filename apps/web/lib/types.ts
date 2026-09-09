@@ -98,3 +98,14 @@ export interface InboxSubmissionDetail {
   property_id: number;
   messages: SubmissionMessage[];
 }
+
+export interface AuditLogEntry {
+  id: number;
+  actor_type: "landlord" | "tenant" | "system";
+  actor_id: number | null;
+  action: string;
+  entity_type: string;
+  entity_id: number;
+  timestamp: string;
+  log_metadata: Record<string, unknown>;
+}

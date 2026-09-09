@@ -1,6 +1,15 @@
 from sqlalchemy.orm import Session
 
-from app.models import ActorType, AuditLog
+from app.models import ActorType, AuditLog, Unit
+
+
+def unit_context(db: Session, unit_id: int) -> dict:
+    """property_id/unit_id to fold into an audit entry's metadata so the
+    per-property and per-unit activity feeds (Epic H1, Milestone 9) can
+    find it — every audit entry that traces back to a unit should carry
+    this, not just entries on the unit itself."""
+    unit = db.get(Unit, unit_id)
+    return {"unit_id": unit_id, "property_id": unit.property_id if unit is not None else None}
 
 
 def log_action(

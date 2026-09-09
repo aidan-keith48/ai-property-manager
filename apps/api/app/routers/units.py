@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from app.audit import log_action
 from app.auth.dependencies import require_landlord
 from app.crud.authz import get_owned_property, get_owned_unit
 from app.db import get_db
-from app.models import Landlord, Unit
+from app.models import ActorType, Landlord, Unit
 from app.schemas.unit import UnitCreate, UnitRead, UnitUpdate
 
 router = APIRouter(tags=["units"])
@@ -29,6 +30,18 @@ def create_unit(
         bathrooms=payload.bathrooms,
     )
     db.add(unit)
+    db.flush()  # assign unit.id before it's referenced below
+
+    log_action(
+        db,
+        actor_type=ActorType.LANDLORD,
+        actor_id=landlord.id,
+        action="unit.create",
+        entity_type="unit",
+        entity_id=unit.id,
+        metadata={"unit_id": unit.id, "property_id": property_id},
+    )
+
     db.commit()
     db.refresh(unit)
     return unit
@@ -65,6 +78,17 @@ def update_unit(
         unit.bedrooms = payload.bedrooms
     if payload.bathrooms is not None:
         unit.bathrooms = payload.bathrooms
+
+    log_action(
+        db,
+        actor_type=ActorType.LANDLORD,
+        actor_id=landlord.id,
+        action="unit.update",
+        entity_type="unit",
+        entity_id=unit.id,
+        metadata={"unit_id": unit.id, "property_id": unit.property_id},
+    )
+
     db.commit()
     db.refresh(unit)
     return unit
@@ -75,5 +99,16 @@ def delete_unit(
     unit_id: int, landlord: Landlord = Depends(require_landlord), db: Session = Depends(get_db)
 ) -> None:
     unit = get_owned_unit(db, unit_id, landlord)
+
+    log_action(
+        db,
+        actor_type=ActorType.LANDLORD,
+        actor_id=landlord.id,
+        action="unit.delete",
+        entity_type="unit",
+        entity_id=unit.id,
+        metadata={"unit_id": unit.id, "property_id": unit.property_id},
+    )
+
     db.delete(unit)
     db.commit()

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.audit import log_action
+from app.audit import log_action, unit_context
 from app.auth.dependencies import get_current_principal, require_tenant
 from app.db import get_db
 from app.models import ActorType, CommunicationLog, Property, Submission, Tenant, Unit
@@ -57,7 +57,7 @@ async def create_submission(
         action="submission.create",
         entity_type="submission",
         entity_id=submission.id,
-        metadata={"unit_id": tenant.unit_id, "photo_count": len(photo_paths)},
+        metadata={**unit_context(db, tenant.unit_id), "photo_count": len(photo_paths)},
     )
 
     # Epic A4: automatic acknowledgment message. No email/SMS provider is

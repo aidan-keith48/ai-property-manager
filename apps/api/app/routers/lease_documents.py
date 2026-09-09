@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.audit import log_action
+from app.audit import log_action, unit_context
 from app.auth.dependencies import get_current_principal
 from app.db import get_db
 from app.models import ActorType, Lease, LeaseDocument, Property, Unit
@@ -74,7 +74,11 @@ def upload_lease_document(
         action="lease_document.upload",
         entity_type="lease_document",
         entity_id=document.id,
-        metadata={"lease_id": lease.id, "file_type": document.file_type},
+        metadata={
+            **unit_context(db, lease.unit_id),
+            "lease_id": lease.id,
+            "file_type": document.file_type,
+        },
     )
 
     db.commit()
@@ -100,7 +104,7 @@ def download_lease_document(
     db: Session = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
 ) -> Response:
-    _get_lease_for_principal(db, lease_id, principal)
+    lease = _get_lease_for_principal(db, lease_id, principal)
     document = db.get(LeaseDocument, document_id)
     if document is None or document.lease_id != lease_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
@@ -118,7 +122,7 @@ def download_lease_document(
         action="lease_document.download",
         entity_type="lease_document",
         entity_id=document.id,
-        metadata={"lease_id": lease_id},
+        metadata={**unit_context(db, lease.unit_id), "lease_id": lease_id},
     )
     db.commit()
 
@@ -137,7 +141,7 @@ def delete_lease_document(
     copy no longer needed after a lease ends) — see the retention/deletion
     stance in docs/compliance-lease-documents.md. Landlord-only: a tenant
     downloading their own documents has no deletion authority over them."""
-    _get_lease_for_principal(db, lease_id, principal)
+    lease = _get_lease_for_principal(db, lease_id, principal)
     if principal.get("role") != "landlord":
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, "Only the landlord can delete lease documents"
@@ -158,6 +162,6 @@ def delete_lease_document(
         action="lease_document.delete",
         entity_type="lease_document",
         entity_id=document_id,
-        metadata={"lease_id": lease_id},
+        metadata={**unit_context(db, lease.unit_id), "lease_id": lease_id},
     )
     db.commit()

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.routers.activity import router as activity_router
 from app.routers.auth import router as auth_router
 from app.routers.inbox import router as inbox_router
 from app.routers.lease_documents import router as lease_documents_router
@@ -29,6 +30,7 @@ app.include_router(leases_router)
 app.include_router(lease_documents_router)
 app.include_router(submissions_router)
 app.include_router(inbox_router)
+app.include_router(activity_router)
 
 
 @app.get("/health")
