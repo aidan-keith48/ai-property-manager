@@ -2,14 +2,16 @@
 
 import { use, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowLeft, Inbox as InboxIcon, Send } from "lucide-react";
+import { ArrowLeft, Building2, DoorOpen, Inbox as InboxIcon, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 import type { InboxSubmissionDetail, SubmissionMessage, SubmissionStatus } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
+import { MetaChip, MetaChipRow } from "@/components/meta-chip";
 import { DetailSkeleton } from "@/components/skeletons";
-import { AuthedImage, ErrorText, PageHeader } from "@/components/ui";
+import { AuthedImage, ErrorText, PageHeader, SectionHeader } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -122,8 +124,15 @@ export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]"
       </Button>
 
       <PageHeader
+        eyebrow="Submission"
+        size="display"
         title={detail.tenant_name}
-        description={`${detail.property_name} · Unit ${detail.unit_label}`}
+        description={
+          <MetaChipRow>
+            <MetaChip icon={Building2}>{detail.property_name}</MetaChip>
+            <MetaChip icon={DoorOpen}>Unit {detail.unit_label}</MetaChip>
+          </MetaChipRow>
+        }
       >
         <Select
           value={detail.submission.status}
@@ -143,7 +152,9 @@ export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]"
       </PageHeader>
 
       <Card className="mb-8 p-6">
-        <h2 className="mb-2 text-sm font-semibold text-foreground">Reported issue</h2>
+        <h2 className="mb-2 font-heading text-lg font-semibold tracking-tight text-foreground">
+          Reported issue
+        </h2>
         <p className="text-sm text-muted-foreground">{detail.submission.description}</p>
         {detail.submission.photo_paths.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-3">
@@ -159,7 +170,7 @@ export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]"
         )}
       </Card>
 
-      <h2 className="mb-4 text-lg font-semibold text-foreground">Conversation</h2>
+      <SectionHeader title="Conversation" />
       <div className="mb-6 flex flex-col gap-3">
         {detail.messages.map((message) => {
           // Outbound = from the landlord/system to the tenant.
@@ -178,14 +189,15 @@ export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]"
                 )}
               >
                 <p>{message.content}</p>
-                <p
+                <time
+                  dateTime={message.timestamp}
                   className={cn(
-                    "mt-1.5 text-xs",
+                    "mt-1.5 block font-mono text-xs",
                     outbound ? "text-primary-foreground/70" : "text-muted-foreground"
                   )}
                 >
-                  {new Date(message.timestamp).toLocaleString()}
-                </p>
+                  {formatDateTime(message.timestamp)}
+                </time>
               </div>
             </div>
           );

@@ -3,13 +3,15 @@
 import { use, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, DoorOpen, Users } from "lucide-react";
+import { ArrowLeft, DoorOpen, Mail, Phone, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Tenant } from "@/lib/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
+import { MetaChip, MetaChipRow } from "@/components/meta-chip";
+import { PropertyIdentity } from "@/components/property-identity";
 import { DetailSkeleton } from "@/components/skeletons";
 import { ErrorText, PageHeader } from "@/components/ui";
 import { Button } from "@/components/ui/button";
@@ -116,11 +118,24 @@ export default function TenantDetailPage(props: PageProps<"/tenants/[tenantId]">
         </Link>
       </Button>
 
-      <PageHeader title={tenant.name} description={tenant.email} />
+      <PageHeader
+        eyebrow="Tenant"
+        size="display"
+        title={tenant.name}
+        leading={<PropertyIdentity seed={`tenant-${tenant.id}`} label={tenant.name} size="lg" />}
+        description={
+          <MetaChipRow>
+            <MetaChip icon={Mail}>{tenant.email}</MetaChip>
+            {tenant.phone ? <MetaChip icon={Phone}>{tenant.phone}</MetaChip> : null}
+          </MetaChipRow>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,28rem)_1fr]">
         <Card className="p-6">
-          <h2 className="mb-4 text-sm font-semibold text-foreground">Contact details</h2>
+          <h2 className="mb-4 font-heading text-lg font-semibold tracking-tight text-foreground">
+            Contact details
+          </h2>
           <form onSubmit={handleUpdate} className="flex flex-col gap-4">
             <div>
               <Label htmlFor="tenant-name" className="mb-2">
@@ -177,7 +192,9 @@ export default function TenantDetailPage(props: PageProps<"/tenants/[tenantId]">
         </Card>
 
         <Card className="h-fit p-6">
-          <h2 className="mb-3 text-sm font-semibold text-foreground">Current unit</h2>
+          <h2 className="mb-3 font-heading text-lg font-semibold tracking-tight text-foreground">
+            Current unit
+          </h2>
           {tenant.unit_id ? (
             <Link
               href={`/units/${tenant.unit_id}`}

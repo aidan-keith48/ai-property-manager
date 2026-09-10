@@ -2,14 +2,16 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowLeft, DoorOpen, FileText } from "lucide-react";
+import { ArrowLeft, Building2, DoorOpen, FileText } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
+import { MetaChip, MetaChipRow } from "@/components/meta-chip";
 import { DetailSkeleton } from "@/components/skeletons";
 import { LeaseStatusBadge } from "@/components/status-badge";
-import { PageHeader } from "@/components/ui";
+import { Eyebrow, PageHeader } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { formatDate, formatZARParts } from "@/lib/format";
 import { useLeasesWithDetails } from "@/lib/use-leases";
 
 export default function LeaseDetailPage(props: PageProps<"/leases/[leaseId]">) {
@@ -40,6 +42,8 @@ export default function LeaseDetailPage(props: PageProps<"/leases/[leaseId]">) {
     );
   }
 
+  const rent = formatZARParts(lease.rent_amount);
+
   return (
     <div>
       <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3 text-muted-foreground">
@@ -50,34 +54,47 @@ export default function LeaseDetailPage(props: PageProps<"/leases/[leaseId]">) {
       </Button>
 
       <PageHeader
+        eyebrow="Lease"
+        size="display"
         title={lease.tenant_name}
-        description={`${lease.property_name} · Unit ${lease.unit_label}`}
+        description={
+          <MetaChipRow>
+            <MetaChip icon={Building2}>{lease.property_name}</MetaChip>
+            <MetaChip icon={DoorOpen}>Unit {lease.unit_label}</MetaChip>
+          </MetaChipRow>
+        }
       >
         <LeaseStatusBadge status={lease.status} />
       </PageHeader>
 
       <Card className="mb-6 p-6">
-        <dl className="grid gap-5 sm:grid-cols-2">
+        <Eyebrow>Monthly rent</Eyebrow>
+        <p className="mt-2 font-heading text-metric-lg tabular-nums text-foreground">
+          <span className="mr-1.5 align-baseline text-xl font-semibold text-muted-foreground">
+            {rent.symbol}
+          </span>
+          {rent.amount}
+        </p>
+
+        <dl className="mt-8 grid gap-5 sm:grid-cols-3">
           <div>
-            <dt className="text-xs font-medium text-muted-foreground">Monthly rent</dt>
-            <dd className="mt-1 text-lg font-semibold text-foreground">R{lease.rent_amount}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-muted-foreground">Tenant</dt>
-            <dd className="mt-1 text-sm font-medium">
+            <dt className="text-eyebrow uppercase text-muted-foreground">Tenant</dt>
+            <dd className="mt-1.5 text-sm font-medium">
               <Link href={`/tenants/${lease.tenant_id}`} className="text-primary hover:underline">
                 {lease.tenant_name}
               </Link>
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-muted-foreground">Start date</dt>
-            <dd className="mt-1 text-sm font-medium text-foreground">{lease.start_date}</dd>
+            <dt className="text-eyebrow uppercase text-muted-foreground">Start date</dt>
+            <dd className="mt-1.5 text-sm font-medium text-foreground">
+              {formatDate(lease.start_date)}
+            </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-muted-foreground">End date</dt>
-            <dd className="mt-1 text-sm font-medium text-foreground">
-              {lease.end_date ?? "—"}
+            <dt className="text-eyebrow uppercase text-muted-foreground">End date</dt>
+            <dd className="mt-1.5 text-sm font-medium text-foreground">
+              {lease.end_date ? formatDate(lease.end_date) : "—"}
             </dd>
           </div>
         </dl>

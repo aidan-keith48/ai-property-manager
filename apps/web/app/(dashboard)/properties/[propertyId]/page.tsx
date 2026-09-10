@@ -2,16 +2,19 @@
 
 import { use, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowLeft, DoorOpen, MapPin, Plus } from "lucide-react";
+import { ArrowLeft, Bath, BedDouble, DoorOpen, MapPin, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Property, Unit } from "@/lib/types";
 import { ActivityLog } from "@/components/activity-log";
 import { EmptyState } from "@/components/empty-state";
+import { ListRow } from "@/components/list-row";
+import { MetaChip, MetaChipRow } from "@/components/meta-chip";
 import { ListItem, StaggerList } from "@/components/motion";
+import { PropertyIdentity } from "@/components/property-identity";
 import { DetailSkeleton } from "@/components/skeletons";
-import { ErrorText, PageHeader } from "@/components/ui";
+import { ErrorText, PageHeader, SectionHeader } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -114,7 +117,20 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
         </Link>
       </Button>
 
-      <PageHeader title={property.name} description={property.address} />
+      <PageHeader
+        eyebrow="Property"
+        size="display"
+        title={property.name}
+        leading={<PropertyIdentity seed={property.id} label={property.name} size="lg" />}
+        description={
+          <MetaChipRow>
+            <MetaChip icon={MapPin}>{property.address}</MetaChip>
+            <MetaChip icon={DoorOpen}>
+              {units.length} {units.length === 1 ? "unit" : "units"}
+            </MetaChip>
+          </MetaChipRow>
+        }
+      />
 
       <Card className="mb-8 p-6">
         <h2 className="mb-4 text-sm font-semibold text-foreground">Add a unit</h2>
@@ -163,7 +179,7 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
         <ErrorText>{error}</ErrorText>
       </Card>
 
-      <h2 className="mb-4 text-lg font-semibold text-foreground">Units</h2>
+      <SectionHeader title="Units" />
       {units.length === 0 ? (
         <EmptyState
           icon={DoorOpen}
@@ -171,24 +187,33 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
           description="Add the first unit to this property using the form above."
         />
       ) : (
-        <StaggerList className="grid gap-4 sm:grid-cols-2">
+        <StaggerList className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {units.map((unit) => (
             <ListItem key={unit.id}>
-              <Link
+              {/* An icon tile, not a PropertyIdentity monogram: a monogram of a
+                  short unit label ("5E") would render that label a second time
+                  in the row, and the specs click units by exact text. */}
+              <ListRow
                 href={`/units/${unit.id}`}
-                className="block h-full rounded-xl bg-card p-5 shadow-soft transition-shadow hover:shadow-lift"
-              >
-                <h3 className="font-semibold text-foreground">{unit.unit_label}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {unit.bedrooms ?? "?"} bed · {unit.bathrooms ?? "?"} bath
-                </p>
-              </Link>
+                leading={
+                  <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                    <DoorOpen className="size-4" aria-hidden />
+                  </span>
+                }
+                title={unit.unit_label}
+                footer={
+                  <MetaChipRow>
+                    <MetaChip icon={BedDouble}>{unit.bedrooms ?? "?"} bed</MetaChip>
+                    <MetaChip icon={Bath}>{unit.bathrooms ?? "?"} bath</MetaChip>
+                  </MetaChipRow>
+                }
+              />
             </ListItem>
           ))}
         </StaggerList>
       )}
 
-      <h2 className="mt-10 mb-4 text-lg font-semibold text-foreground">Activity</h2>
+      <SectionHeader title="Activity" className="mt-10" />
       <ActivityLog fetchPath={`/properties/${propertyId}/activity`} />
     </div>
   );

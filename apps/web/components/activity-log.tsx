@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { History } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 import type { AuditLogEntry } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { Card } from "@/components/ui/card";
@@ -88,9 +89,12 @@ export function ActivityLog({ fetchPath }: { fetchPath: string }) {
                 {entry.actor_id !== null ? ` #${entry.actor_id}` : ""}
               </span>
             </span>
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {new Date(entry.timestamp).toLocaleString()}
-            </span>
+            <time
+              dateTime={entry.timestamp}
+              className="shrink-0 font-mono text-xs text-muted-foreground"
+            >
+              {formatDateTime(entry.timestamp)}
+            </time>
           </li>
         ))}
       </ul>
