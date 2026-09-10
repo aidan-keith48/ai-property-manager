@@ -1,5 +1,6 @@
 import io
 
+from app.config import settings
 from app.models import ActorType, AuditLog, CommunicationLog
 
 
@@ -63,6 +64,33 @@ def test_tenant_can_create_submission_with_photo(client, landlord_token):
     )
     assert resp.status_code == 201
     assert len(resp.json()["photo_paths"]) == 1
+
+
+def test_oversized_submission_photo_is_rejected(client, landlord_token):
+    headers = landlord_token()
+    tenant_headers = _make_tenant_with_lease(client, headers, "sub-tenant-oversized@example.com")
+
+    oversized = io.BytesIO(b"x" * (settings.upload_max_bytes + 1))
+    resp = client.post(
+        "/submissions",
+        data={"description": "Photo too large"},
+        files={"photos": ("huge.jpg", oversized, "image/jpeg")},
+        headers=tenant_headers,
+    )
+    assert resp.status_code == 413
+
+
+def test_disallowed_content_type_submission_photo_is_rejected(client, landlord_token):
+    headers = landlord_token()
+    tenant_headers = _make_tenant_with_lease(client, headers, "sub-tenant-badtype@example.com")
+
+    resp = client.post(
+        "/submissions",
+        data={"description": "Wrong file type"},
+        files={"photos": ("notes.txt", io.BytesIO(b"hello"), "text/plain")},
+        headers=tenant_headers,
+    )
+    assert resp.status_code == 415
 
 
 def test_submission_triggers_acknowledgment_and_audit_log(client, landlord_token, db_session):

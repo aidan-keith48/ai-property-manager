@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatDate, formatZARParts } from "@/lib/format";
 import type { Lease, LeaseDocument, Tenant, Unit } from "@/lib/types";
+import { formatMaxUploadSize, MAX_UPLOAD_BYTES } from "@/lib/uploads";
 import { ActivityLog } from "@/components/activity-log";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
@@ -131,13 +132,20 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
   }
 
   async function handleUploadDocument() {
-    if (!activeLease || !fileInputRef.current?.files?.[0]) return;
+    const file = fileInputRef.current?.files?.[0];
+    if (!activeLease || !file) return;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      const message = `File exceeds the ${formatMaxUploadSize()} limit`;
+      setError(message);
+      toast.error(message);
+      return;
+    }
     const formData = new FormData();
-    formData.append("file", fileInputRef.current.files[0]);
+    formData.append("file", file);
     setUploading(true);
     try {
       await apiFetch(`/leases/${activeLease.id}/documents`, { method: "POST", formData });
-      fileInputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
       await loadData();
       toast.success("Document uploaded");
     } catch (err) {
@@ -299,6 +307,7 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
               <input
                 ref={fileInputRef}
                 type="file"
+                accept="application/pdf,image/jpeg,image/png"
                 className="max-w-full text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"
               />
               <Button

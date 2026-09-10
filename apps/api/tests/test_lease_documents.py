@@ -1,5 +1,6 @@
 import io
 
+from app.config import settings
 from app.models import Tenant
 
 
@@ -99,6 +100,31 @@ def test_unrelated_tenant_cannot_download_lease_document(client, landlord_token,
         f"/leases/{lease_id}/documents/{document_id}/download", headers=other_tenant_headers
     )
     assert download.status_code == 403
+
+
+def test_oversized_lease_document_is_rejected(client, landlord_token):
+    headers = landlord_token()
+    lease_id, _ = _make_lease(client, headers)
+
+    oversized = io.BytesIO(b"x" * (settings.upload_max_bytes + 1))
+    upload = client.post(
+        f"/leases/{lease_id}/documents",
+        files={"file": ("big.pdf", oversized, "application/pdf")},
+        headers=headers,
+    )
+    assert upload.status_code == 413
+
+
+def test_disallowed_content_type_lease_document_is_rejected(client, landlord_token):
+    headers = landlord_token()
+    lease_id, _ = _make_lease(client, headers)
+
+    upload = client.post(
+        f"/leases/{lease_id}/documents",
+        files={"file": ("script.exe", io.BytesIO(b"MZ"), "application/x-msdownload")},
+        headers=headers,
+    )
+    assert upload.status_code == 415
 
 
 def test_tenant_cannot_upload_lease_document(client, landlord_token, db_session):

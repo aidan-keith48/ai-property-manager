@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import BinaryIO
 
 from app.storage.base import StorageBackend
 
@@ -18,11 +17,10 @@ class LocalStorageBackend(StorageBackend):
             raise ValueError(f"Invalid storage key escapes root: {key}")
         return path
 
-    def save(self, key: str, file: BinaryIO) -> str:
+    def save(self, key: str, content: bytes) -> str:
         path = self._resolve(key)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "wb") as out:
-            out.write(file.read())
+        path.write_bytes(content)
         return str(path.relative_to(self._root))
 
     def read(self, key: str) -> bytes:

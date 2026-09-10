@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     storage_backend: str = "local"
     storage_local_root: str = "../../uploads"
+    upload_max_bytes: int = 25 * 1024 * 1024
 
     cors_origins: str = "http://localhost:3000"
 
