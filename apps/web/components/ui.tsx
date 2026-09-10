@@ -44,22 +44,68 @@ export function AuthedImage({
   return <img src={objectUrl} alt={alt} className={className} />;
 }
 
-export function PageHeader({
+/** Small letter-spaced uppercase label. The rung the type scale was missing —
+ *  it gives a heading something to sit against without adding another weight. */
+export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <p className={cn("text-eyebrow uppercase text-muted-foreground", className)}>{children}</p>
+  );
+}
+
+/** "Section title + action" row, the pattern the reference designs use above
+ *  every list. Replaces hand-rolled h2 + ghost-button rows. */
+export function SectionHeader({
   title,
-  description,
-  children,
+  action,
+  className,
 }: {
   title: string;
-  description?: string;
+  action?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("mb-4 flex items-center justify-between gap-3", className)}>
+      <h2 className="font-heading text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+      {action}
+    </div>
+  );
+}
+
+/** Every optional prop here was added for the redesign; the original
+ *  title/description/children signature still compiles unchanged. */
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  leading,
+  size = "default",
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: ReactNode;
+  leading?: ReactNode;
+  size?: "default" | "display";
   children?: ReactNode;
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
-        {description ? (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-        ) : null}
+      <div className="flex min-w-0 items-start gap-4">
+        {leading ? <div className="shrink-0">{leading}</div> : null}
+        <div className="min-w-0">
+          {eyebrow ? <Eyebrow className="mb-1.5">{eyebrow}</Eyebrow> : null}
+          <h1
+            className={cn(
+              "font-heading text-foreground",
+              size === "display" ? "text-display" : "text-display-sm",
+            )}
+          >
+            {title}
+          </h1>
+          {description ? (
+            <div className="mt-2 text-sm text-muted-foreground">{description}</div>
+          ) : null}
+        </div>
       </div>
       {children}
     </div>

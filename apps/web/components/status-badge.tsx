@@ -56,3 +56,28 @@ export function LeaseStatusBadge({
 }) {
   return <StatusBadge status={status} map={LEASE_STATUSES} className={className} />;
 }
+
+/** Whether a tenant currently occupies a unit. Lives here rather than in the
+ *  tenants page so the --status-* tokens keep exactly one consumer. Labels are
+ *  asserted verbatim by the E2E suite — do not reword them. */
+export function TenancyStatusBadge({
+  assigned,
+  className,
+}: {
+  assigned: boolean;
+  className?: string;
+}) {
+  return (
+    <StatusBadge
+      status={assigned ? "housed" : "unassigned"}
+      map={{
+        housed: { label: "Housed", className: "bg-status-active text-status-active-foreground" },
+        unassigned: {
+          label: "Unassigned",
+          className: "bg-status-ended text-status-ended-foreground",
+        },
+      }}
+      className={className}
+    />
+  );
+}
