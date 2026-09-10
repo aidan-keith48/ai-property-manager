@@ -11,7 +11,8 @@ import type { Submission, SubmissionMessage } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { DetailSkeleton } from "@/components/skeletons";
 import { SubmissionStatusBadge } from "@/components/status-badge";
-import { AuthedImage } from "@/components/ui";
+import { AuthedImage, SectionHeader } from "@/components/ui";
+import { formatDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -96,18 +97,23 @@ export default function PortalSubmissionDetailPage(
 
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
+          <h1 className="font-heading text-display-sm text-foreground">
             Report #{submission.id}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {new Date(submission.created_at).toLocaleString()}
-          </p>
+          <time
+            dateTime={submission.created_at}
+            className="mt-2 block font-mono text-xs text-muted-foreground"
+          >
+            {formatDateTime(submission.created_at)}
+          </time>
         </div>
         <SubmissionStatusBadge status={submission.status} />
       </div>
 
       <Card className="mb-6 p-6">
-        <h2 className="mb-2 text-sm font-semibold text-foreground">What you reported</h2>
+        <h2 className="mb-2 font-heading text-lg font-semibold tracking-tight text-foreground">
+          What you reported
+        </h2>
         <p className="text-sm text-muted-foreground">{submission.description}</p>
         {submission.photo_paths.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-3">
@@ -124,7 +130,7 @@ export default function PortalSubmissionDetailPage(
         )}
       </Card>
 
-      <h2 className="mb-4 text-lg font-semibold text-foreground">Updates</h2>
+      <SectionHeader title="Updates" />
       <div className="flex flex-col gap-3">
         {messages.map((message) => {
           // Outbound = from the landlord to you.
@@ -143,14 +149,15 @@ export default function PortalSubmissionDetailPage(
                 )}
               >
                 <p>{message.content}</p>
-                <p
+                <time
+                  dateTime={message.timestamp}
                   className={cn(
-                    "mt-1.5 text-xs",
+                    "mt-1.5 block font-mono text-xs",
                     fromLandlord ? "text-muted-foreground" : "text-primary-foreground/70"
                   )}
                 >
-                  {new Date(message.timestamp).toLocaleString()}
-                </p>
+                  {formatDateTime(message.timestamp)}
+                </time>
               </div>
             </div>
           );

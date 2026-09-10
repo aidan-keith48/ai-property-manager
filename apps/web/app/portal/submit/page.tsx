@@ -97,7 +97,7 @@ export default function PortalSubmitPage() {
         <div className="flex size-11 items-center justify-center rounded-xl bg-status-resolved text-status-resolved-foreground">
           <CheckCircle2 className="size-5" />
         </div>
-        <h1 className="mt-4 text-xl font-bold tracking-tight text-foreground">
+        <h1 className="mt-4 font-heading text-display-sm text-foreground">
           Thanks — we&apos;ve got it
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -126,7 +126,7 @@ export default function PortalSubmitPage() {
 
   return (
     <Card className="p-6">
-      <h1 className="text-xl font-bold tracking-tight text-foreground">Report an issue</h1>
+      <h1 className="font-heading text-display-sm text-foreground">Report an issue</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Tell your landlord what&apos;s wrong. Photos help a lot.
       </p>
