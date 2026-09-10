@@ -23,6 +23,7 @@ const ACTION_LABELS: Record<string, string> = {
   "lease.end": "Lease ended",
   "submission.create": "Tenant submitted an issue",
   "inbox.reply": "Landlord replied to a submission",
+  "submission.status_change": "Submission status changed",
   "lease_document.upload": "Lease document uploaded",
   "lease_document.download": "Lease document viewed",
   "lease_document.delete": "Lease document deleted",

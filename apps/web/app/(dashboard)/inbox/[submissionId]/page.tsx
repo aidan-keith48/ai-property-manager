@@ -6,15 +6,27 @@ import { ArrowLeft, Inbox as InboxIcon, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
-import type { InboxSubmissionDetail, SubmissionMessage } from "@/lib/types";
+import type { InboxSubmissionDetail, SubmissionMessage, SubmissionStatus } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { DetailSkeleton } from "@/components/skeletons";
-import { SubmissionStatusBadge } from "@/components/status-badge";
 import { AuthedImage, ErrorText, PageHeader } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+
+const STATUS_OPTIONS: { value: SubmissionStatus; label: string }[] = [
+  { value: "open", label: "Open" },
+  { value: "in_progress", label: "In progress" },
+  { value: "resolved", label: "Resolved" },
+];
 
 export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]">) {
   const { submissionId } = use(props.params);
@@ -46,6 +58,16 @@ export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]"
     loadDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId]);
+
+  async function handleStatusChange(status: SubmissionStatus) {
+    try {
+      await apiFetch(`/inbox/${submissionId}/status`, { method: "PATCH", json: { status } });
+      await loadDetail();
+      toast.success("Status updated");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to update status");
+    }
+  }
 
   async function handleReply(e: FormEvent) {
     e.preventDefault();
@@ -103,7 +125,21 @@ export default function InboxThreadPage(props: PageProps<"/inbox/[submissionId]"
         title={detail.tenant_name}
         description={`${detail.property_name} · Unit ${detail.unit_label}`}
       >
-        <SubmissionStatusBadge status={detail.submission.status} />
+        <Select
+          value={detail.submission.status}
+          onValueChange={(value) => handleStatusChange(value as SubmissionStatus)}
+        >
+          <SelectTrigger aria-label="Submission status" className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </PageHeader>
 
       <Card className="mb-8 p-6">

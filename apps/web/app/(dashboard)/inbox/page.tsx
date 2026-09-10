@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Inbox as InboxIcon, MessageSquare } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
-import type { InboxSubmissionItem, Property, Tenant } from "@/lib/types";
+import type { InboxSubmissionItem, Property, SubmissionStatus, Tenant } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { ListItem, StaggerList } from "@/components/motion";
 import { CardListSkeleton } from "@/components/skeletons";
@@ -21,6 +21,12 @@ import {
 
 // Radix Select reserves "" as a value, so "all" is the sentinel for no filter.
 const ALL = "all";
+
+const STATUS_FILTER_OPTIONS: { value: SubmissionStatus; label: string }[] = [
+  { value: "open", label: "Open" },
+  { value: "in_progress", label: "In progress" },
+  { value: "resolved", label: "Resolved" },
+];
 
 function timeAgo(iso: string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -39,6 +45,7 @@ export default function InboxPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [propertyFilter, setPropertyFilter] = useState(ALL);
   const [tenantFilter, setTenantFilter] = useState(ALL);
+  const [statusFilter, setStatusFilter] = useState(ALL);
   const [loading, setLoading] = useState(true);
 
   async function loadFilters() {
@@ -55,6 +62,7 @@ export default function InboxPage() {
     const params = new URLSearchParams();
     if (propertyFilter !== ALL) params.set("property_id", propertyFilter);
     if (tenantFilter !== ALL) params.set("tenant_id", tenantFilter);
+    if (statusFilter !== ALL) params.set("status", statusFilter);
     const query = params.toString() ? `?${params.toString()}` : "";
     setItems(await apiFetch<InboxSubmissionItem[]>(`/inbox${query}`));
     setLoading(false);
@@ -69,9 +77,9 @@ export default function InboxPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch-on-mount, no data-fetching library in Phase 1
     loadInbox();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyFilter, tenantFilter]);
+  }, [propertyFilter, tenantFilter, statusFilter]);
 
-  const isFiltered = propertyFilter !== ALL || tenantFilter !== ALL;
+  const isFiltered = propertyFilter !== ALL || tenantFilter !== ALL || statusFilter !== ALL;
 
   return (
     <div>
@@ -104,6 +112,20 @@ export default function InboxPage() {
             {tenants.map((t) => (
               <SelectItem key={t.id} value={String(t.id)}>
                 {t.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger aria-label="Filter by status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All statuses</SelectItem>
+            {STATUS_FILTER_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>

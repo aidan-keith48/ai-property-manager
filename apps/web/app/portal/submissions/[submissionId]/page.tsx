@@ -4,8 +4,9 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ClipboardList } from "lucide-react";
+import { toast } from "sonner";
 
-import { apiFetch, ApiError, TENANT_TOKEN_STORAGE_KEY } from "@/lib/api";
+import { apiFetch, ApiError, isUnauthorized, setTenantToken, TENANT_TOKEN_STORAGE_KEY } from "@/lib/api";
 import type { Submission, SubmissionMessage } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { DetailSkeleton } from "@/components/skeletons";
@@ -44,6 +45,12 @@ export default function PortalSubmissionDetailPage(
         setSubmission(submissionData);
         setMessages(messagesData);
       } catch (err) {
+        if (isUnauthorized(err)) {
+          setTenantToken(null);
+          toast.error("Your session expired — request a new link.");
+          router.replace("/portal");
+          return;
+        }
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true);
         } else {

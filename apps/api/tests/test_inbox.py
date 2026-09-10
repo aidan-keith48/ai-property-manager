@@ -164,3 +164,80 @@ def test_landlord_cannot_view_or_reply_to_unowned_submission(client, landlord_to
         f"/inbox/{ctx['submission_id']}/messages", json={"content": "x"}, headers=headers_b
     )
     assert reply_resp.status_code == 404
+
+
+def test_landlord_updates_submission_status_and_it_is_audit_logged(
+    client, landlord_token, db_session
+):
+    headers = landlord_token()
+    ctx = _make_tenant_with_submission(client, headers, "inbox-9@example.com", "Issue")
+    assert ctx  # submission starts as "open" by default, per app/models/submission.py
+
+    resp = client.patch(
+        f"/inbox/{ctx['submission_id']}/status",
+        json={"status": "in_progress"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "in_progress"
+
+    resolved = client.patch(
+        f"/inbox/{ctx['submission_id']}/status",
+        json={"status": "resolved"},
+        headers=headers,
+    )
+    assert resolved.status_code == 200
+    assert resolved.json()["status"] == "resolved"
+
+    # The submission itself reflects it too, not just the response.
+    fetched = client.get(f"/inbox/{ctx['submission_id']}", headers=headers)
+    assert fetched.json()["submission"]["status"] == "resolved"
+
+    audit = (
+        db_session.query(AuditLog)
+        .filter(
+            AuditLog.entity_type == "submission",
+            AuditLog.entity_id == ctx["submission_id"],
+            AuditLog.action == "submission.status_change",
+        )
+        .order_by(AuditLog.id.desc())
+        .first()
+    )
+    assert audit is not None
+    assert audit.actor_type == ActorType.LANDLORD
+
+
+def test_landlord_cannot_update_status_of_unowned_submission(client, landlord_token):
+    headers_a = landlord_token("inbox-owner-e@example.com")
+    headers_b = landlord_token("inbox-owner-f@example.com")
+    ctx = _make_tenant_with_submission(client, headers_a, "inbox-10@example.com", "Issue")
+
+    resp = client.patch(
+        f"/inbox/{ctx['submission_id']}/status",
+        json={"status": "resolved"},
+        headers=headers_b,
+    )
+    assert resp.status_code == 404
+
+
+def test_inbox_filters_by_status(client, landlord_token):
+    headers = landlord_token()
+    ctx_open = _make_tenant_with_submission(client, headers, "inbox-11a@example.com", "Still open")
+    ctx_resolved = _make_tenant_with_submission(
+        client, headers, "inbox-11b@example.com", "Fixed already"
+    )
+    client.patch(
+        f"/inbox/{ctx_resolved['submission_id']}/status",
+        json={"status": "resolved"},
+        headers=headers,
+    )
+
+    open_only = client.get("/inbox?status=open", headers=headers)
+    ids = [i["id"] for i in open_only.json()]
+    assert ctx_open["submission_id"] in ids
+    assert ctx_resolved["submission_id"] not in ids
+
+    resolved_only = client.get("/inbox?status=resolved", headers=headers)
+    ids = [i["id"] for i in resolved_only.json()]
+    assert ctx_resolved["submission_id"] in ids
+    assert ctx_open["submission_id"] not in ids

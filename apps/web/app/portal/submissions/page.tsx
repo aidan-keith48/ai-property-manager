@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ClipboardList, Plus } from "lucide-react";
+import { toast } from "sonner";
 
-import { apiFetch, TENANT_TOKEN_STORAGE_KEY } from "@/lib/api";
+import { apiFetch, isUnauthorized, setTenantToken, TENANT_TOKEN_STORAGE_KEY } from "@/lib/api";
 import type { Submission } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { ListItem, StaggerList } from "@/components/motion";
@@ -25,7 +26,15 @@ export default function PortalSubmissionsPage() {
     }
     apiFetch<Submission[]>("/submissions", { tokenKey: TENANT_TOKEN_STORAGE_KEY })
       .then(setSubmissions)
-      .catch(() => setSubmissions([]))
+      .catch((err) => {
+        if (isUnauthorized(err)) {
+          setTenantToken(null);
+          toast.error("Your session expired — request a new link.");
+          router.replace("/portal");
+          return;
+        }
+        setSubmissions([]);
+      })
       .finally(() => setLoading(false));
   }, [router]);
 

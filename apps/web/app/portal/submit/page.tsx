@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, ImagePlus, X } from "lucide-react";
 
-import { apiFetch, ApiError, TENANT_TOKEN_STORAGE_KEY } from "@/lib/api";
+import { toast } from "sonner";
+
+import { apiFetch, ApiError, isUnauthorized, setTenantToken, TENANT_TOKEN_STORAGE_KEY } from "@/lib/api";
 import type { Submission } from "@/lib/types";
 import { ErrorText } from "@/components/ui";
 import { Button } from "@/components/ui/button";
@@ -73,6 +75,12 @@ export default function PortalSubmitPage() {
       });
       setConfirmed(submission);
     } catch (err) {
+      if (isUnauthorized(err)) {
+        setTenantToken(null);
+        toast.error("Your session expired — request a new link.");
+        router.replace("/portal");
+        return;
+      }
       setError(
         err instanceof ApiError
           ? err.message

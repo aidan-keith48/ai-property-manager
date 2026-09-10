@@ -86,6 +86,12 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
   async function handleCreateLease(e: FormEvent) {
     e.preventDefault();
     setError("");
+    if (!selectedTenantId) {
+      const message = "Select a tenant before creating the lease";
+      setError(message);
+      toast.error(message);
+      return;
+    }
     setSubmitting(true);
     try {
       await apiFetch<Lease>("/leases", {
@@ -316,11 +322,7 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
                 <Label htmlFor="lease-tenant" className="mb-2">
                   Tenant
                 </Label>
-                <Select
-                  value={selectedTenantId}
-                  onValueChange={setSelectedTenantId}
-                  required
-                >
+                <Select value={selectedTenantId} onValueChange={setSelectedTenantId}>
                   <SelectTrigger id="lease-tenant" className="w-full">
                     <SelectValue placeholder="Select tenant" />
                   </SelectTrigger>

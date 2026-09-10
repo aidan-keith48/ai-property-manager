@@ -6,13 +6,23 @@ from app.audit import log_action, unit_context
 from app.auth.dependencies import require_landlord
 from app.crud.authz import get_owned_unit
 from app.db import get_db
-from app.models import ActorType, CommunicationLog, Landlord, Property, Submission, Tenant, Unit
+from app.models import (
+    ActorType,
+    CommunicationLog,
+    Landlord,
+    Property,
+    Submission,
+    SubmissionStatus,
+    Tenant,
+    Unit,
+)
 from app.schemas.submission import (
     InboxSubmissionDetail,
     InboxSubmissionItem,
     SubmissionMessageCreate,
     SubmissionMessageRead,
     SubmissionRead,
+    SubmissionStatusUpdate,
 )
 
 router = APIRouter(prefix="/inbox", tags=["inbox"])
@@ -51,6 +61,7 @@ def _thread_stats(db: Session, submission_id: int) -> tuple[int, object]:
 def list_inbox(
     property_id: int | None = None,
     tenant_id: int | None = None,
+    status: SubmissionStatus | None = None,
     landlord: Landlord = Depends(require_landlord),
     db: Session = Depends(get_db),
 ) -> list[InboxSubmissionItem]:
@@ -68,6 +79,8 @@ def list_inbox(
         query = query.filter(Property.id == property_id)
     if tenant_id is not None:
         query = query.filter(Tenant.id == tenant_id)
+    if status is not None:
+        query = query.filter(Submission.status == status)
 
     items: list[InboxSubmissionItem] = []
     for submission, tenant, unit, property_ in query.all():
@@ -163,3 +176,37 @@ def reply_to_submission(
     db.commit()
     db.refresh(message)
     return message
+
+
+@router.patch("/{submission_id}/status", response_model=SubmissionRead)
+def update_submission_status(
+    submission_id: int,
+    payload: SubmissionStatusUpdate,
+    landlord: Landlord = Depends(require_landlord),
+    db: Session = Depends(get_db),
+) -> Submission:
+    """Lets a landlord move a submission through open -> in_progress ->
+    resolved (or back) without deleting anything — the thread and audit
+    trail stay intact either way, matching how the rest of the app never
+    hard-deletes tenant-facing records."""
+    submission = _get_owned_submission(db, submission_id, landlord)
+    previous_status = submission.status
+    submission.status = payload.status
+
+    log_action(
+        db,
+        actor_type=ActorType.LANDLORD,
+        actor_id=landlord.id,
+        action="submission.status_change",
+        entity_type="submission",
+        entity_id=submission.id,
+        metadata={
+            **unit_context(db, submission.unit_id),
+            "from": previous_status.value,
+            "to": payload.status.value,
+        },
+    )
+
+    db.commit()
+    db.refresh(submission)
+    return submission

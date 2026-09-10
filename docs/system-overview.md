@@ -198,6 +198,16 @@ rate-limited by IP (§9) — the tenant portal is the one surface reachable
 without any prior authentication, so it's the one that needs abuse
 protection.
 
+The tenant JWT is short-lived (`JWT_ACCESS_TOKEN_EXPIRE_MINUTES`, 60 min by
+default) with no refresh — a tenant who leaves the portal open past that
+gets a 401 on their next request. Every portal page that fetches data
+checks for this specifically (`isUnauthorized()` in `lib/api.ts`) and
+responds the same way: clear the stale token, toast that the session
+expired, and redirect to `/portal` to request a new link. This matters
+because a naive `catch` that swallows the error looks, from the tenant's
+side, identical to "you have no reports" or a stuck loading spinner — there
+is no separate empty-vs-expired signal without checking the status code.
+
 ---
 
 ## 6. The landlord's inbox
@@ -208,10 +218,10 @@ protection.
 Every submission becomes a thread. `GET /inbox` aggregates all
 submissions across the landlord's properties (joined through
 unit→property), with tenant/unit/property context and a message count,
-ordered by most recent activity — filterable by `property_id` or
-`tenant_id`. Opening a submission (`GET /inbox/{id}`) shows the full
-`CommunicationLog` thread for it, in order: the automatic acknowledgment
-first, then any landlord replies.
+ordered by most recent activity — filterable by `property_id`,
+`tenant_id`, or `status`. Opening a submission (`GET /inbox/{id}`) shows
+the full `CommunicationLog` thread for it, in order: the automatic
+acknowledgment first, then any landlord replies.
 
 **Replying** (`POST /inbox/{id}/messages`) is landlord-only and
 human-authored — there's no AI drafting anywhere in Phase 1 (that's
@@ -219,6 +229,15 @@ Epic D, Phase 2, and even then would need explicit landlord approval
 before sending, per the PRD's human-in-the-loop principle). A tenant can
 *read* their own thread (`GET /submissions/{id}/messages`) to see
 replies, but can't post into it in Phase 1.
+
+**Status** (`PATCH /inbox/{id}/status`, open → in_progress → resolved or
+back) is landlord-only and logged like every other mutation. There's
+deliberately no delete endpoint for submissions or messages, unlike
+properties/units/tenants/lease documents, which can be hard-deleted —
+a tenant-reported issue and the replies to it are the one record this app
+treats as append-only, so "clearing" the inbox means filtering to hide
+resolved items (the `status` query param on `GET /inbox`), not erasing
+them.
 
 Submission photos are served through `GET
 /submissions/{id}/photos/{index}` — dual access control (owning landlord
@@ -362,6 +381,6 @@ mounted once in `apps/web/app/layout.tsx`.
 - Want the full milestone-by-milestone build history and the decisions
   behind them? [`engineering-plan.md`](engineering-plan.md).
 - Want to see the tests that prove all of the above actually works?
-  `apps/api/tests/` (59 pytest cases), `apps/web/e2e/` (10 Playwright
+  `apps/api/tests/` (62 pytest cases), `apps/web/e2e/` (10 Playwright
   cases, `pnpm test:e2e`), and `apps/web/lib/*.test.ts` (10 Vitest unit
   cases, `pnpm test`).

@@ -24,6 +24,10 @@ class SubmissionMessageCreate(BaseModel):
     content: str
 
 
+class SubmissionStatusUpdate(BaseModel):
+    status: SubmissionStatus
+
+
 class SubmissionMessageRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

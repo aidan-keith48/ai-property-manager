@@ -15,6 +15,10 @@ export class ApiError extends Error {
   }
 }
 
+export function isUnauthorized(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.status === 401;
+}
+
 function getStoredToken(key: string): string | null {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(key);
