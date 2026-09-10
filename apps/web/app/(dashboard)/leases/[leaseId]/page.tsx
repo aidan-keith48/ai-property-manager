@@ -11,8 +11,9 @@ import { LeaseStatusBadge } from "@/components/status-badge";
 import { Eyebrow, PageHeader } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatDate, formatZARParts } from "@/lib/format";
+import { formatDate, formatDateTime, formatZARParts } from "@/lib/format";
 import { useLeasesWithDetails } from "@/lib/use-leases";
+import { cn } from "@/lib/utils";
 
 export default function LeaseDetailPage(props: PageProps<"/leases/[leaseId]">) {
   const { leaseId } = use(props.params);
@@ -76,7 +77,12 @@ export default function LeaseDetailPage(props: PageProps<"/leases/[leaseId]">) {
           {rent.amount}
         </p>
 
-        <dl className="mt-8 grid gap-5 sm:grid-cols-3">
+        <dl
+          className={cn(
+            "mt-8 grid gap-5",
+            lease.status === "ended" ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3",
+          )}
+        >
           <div>
             <dt className="eyebrow text-muted-foreground">Tenant</dt>
             <dd className="mt-1.5 text-sm font-medium">
@@ -97,6 +103,14 @@ export default function LeaseDetailPage(props: PageProps<"/leases/[leaseId]">) {
               {lease.end_date ? formatDate(lease.end_date) : "—"}
             </dd>
           </div>
+          {lease.status === "ended" ? (
+            <div>
+              <dt className="eyebrow text-muted-foreground">Ended</dt>
+              <dd className="mt-1.5 text-sm font-medium text-foreground">
+                {formatDateTime(lease.ended_at)}
+              </dd>
+            </div>
+          ) : null}
         </dl>
       </Card>
 
