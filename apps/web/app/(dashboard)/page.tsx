@@ -5,49 +5,19 @@ import Link from "next/link";
 import { Building2, FileText, Inbox, Plus, Users } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
+import { ListRow } from "@/components/list-row";
 import { ListItem, StaggerList } from "@/components/motion";
+import { CardListSkeleton } from "@/components/skeletons";
+import { StatCard } from "@/components/stat-card";
 import { SubmissionStatusBadge } from "@/components/status-badge";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, SectionHeader } from "@/components/ui";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { formatRelative } from "@/lib/format";
 import type { InboxSubmissionItem, Lease, Property, Tenant } from "@/lib/types";
 
 const RECENT_LIMIT = 5;
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  href,
-  loading,
-}: {
-  label: string;
-  value: number;
-  icon: typeof Building2;
-  href: string;
-  loading: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-xl bg-card p-5 shadow-soft transition-shadow hover:shadow-lift"
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
-        <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-          <Icon className="size-4" />
-        </span>
-      </div>
-      {loading ? (
-        <Skeleton className="mt-3 h-8 w-12" />
-      ) : (
-        <p className="mt-3 text-3xl font-bold tracking-tight text-foreground">{value}</p>
-      )}
-    </Link>
-  );
-}
 
 export default function DashboardHome() {
   const { landlord } = useAuth();
@@ -79,12 +49,15 @@ export default function DashboardHome() {
 
   const activeLeases = leases.filter((l) => l.status === "active").length;
   const openSubmissions = submissions.filter((s) => s.status !== "resolved").length;
+  const housedTenants = tenants.filter((t) => t.unit_id).length;
   const recent = submissions.slice(0, RECENT_LIMIT);
   const firstName = landlord?.name?.split(" ")[0] ?? "there";
 
   return (
     <div>
       <PageHeader
+        eyebrow="Overview"
+        size="display"
         title={`Welcome back, ${firstName}`}
         description="Here's what's happening across your properties."
       />
@@ -103,6 +76,8 @@ export default function DashboardHome() {
           icon={Users}
           href="/tenants"
           loading={loading}
+          // Occupancy without a second request — both numbers are already in state.
+          delta={tenants.length > 0 ? `${housedTenants} housed` : undefined}
         />
         <StatCard
           label="Active leases"
@@ -117,28 +92,24 @@ export default function DashboardHome() {
           icon={Inbox}
           href="/inbox"
           loading={loading}
+          tone={openSubmissions > 0 ? "accent" : "default"}
         />
       </div>
 
       <section className="mt-10">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Recent submissions</h2>
-          {submissions.length > 0 ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/inbox">View all</Link>
-            </Button>
-          ) : null}
-        </div>
+        <SectionHeader
+          title="Recent submissions"
+          action={
+            submissions.length > 0 ? (
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/inbox">View all</Link>
+              </Button>
+            ) : null
+          }
+        />
 
         {loading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-xl bg-card p-5 shadow-soft">
-                <Skeleton className="h-4 w-1/3" />
-                <Skeleton className="mt-3 h-3 w-2/3" />
-              </div>
-            ))}
-          </div>
+          <CardListSkeleton count={3} className="space-y-3" />
         ) : properties.length === 0 ? (
           <EmptyState
             icon={Building2}
@@ -163,23 +134,26 @@ export default function DashboardHome() {
           <StaggerList className="space-y-3">
             {recent.map((item) => (
               <ListItem key={item.id}>
-                <Link
+                <ListRow
                   href={`/inbox/${item.id}`}
-                  className="block rounded-xl bg-card p-5 shadow-soft transition-shadow hover:shadow-lift"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground">{item.tenant_name}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {item.property_name} · Unit {item.unit_label}
-                      </p>
-                    </div>
-                    <SubmissionStatusBadge status={item.status} />
-                  </div>
-                  <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
-                    {item.description}
-                  </p>
-                </Link>
+                  eyebrow={`${item.property_name} · Unit ${item.unit_label}`}
+                  title={item.tenant_name}
+                  trailing={
+                    <>
+                      <SubmissionStatusBadge status={item.status} />
+                      <time
+                        dateTime={item.last_activity_at}
+                        className="text-xs text-muted-foreground"
+                        suppressHydrationWarning
+                      >
+                        {formatRelative(item.last_activity_at)}
+                      </time>
+                    </>
+                  }
+                  footer={
+                    <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
+                  }
+                />
               </ListItem>
             ))}
           </StaggerList>

@@ -1,24 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { FileText } from "lucide-react";
+import { CalendarRange, FileText } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
+import { FilterChips, type FilterOption } from "@/components/filter-chips";
+import { ListRow } from "@/components/list-row";
+import { MetaChip } from "@/components/meta-chip";
 import { ListItem, StaggerList } from "@/components/motion";
 import { CardListSkeleton } from "@/components/skeletons";
 import { LeaseStatusBadge } from "@/components/status-badge";
 import { PageHeader } from "@/components/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { formatDate, formatZARParts } from "@/lib/format";
 import { useLeasesWithDetails } from "@/lib/use-leases";
 
 const ALL = "all";
+
+const STATUS_FILTER_OPTIONS: FilterOption[] = [
+  { value: ALL, label: "All leases" },
+  { value: "active", label: "Active" },
+  { value: "ended", label: "Ended" },
+];
 
 export default function LeasesPage() {
   const { leases, loading } = useLeasesWithDetails();
@@ -30,22 +32,19 @@ export default function LeasesPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Agreements"
+        size="display"
         title="Leases"
         description="Every lease across your properties, active and ended."
       />
 
-      <div className="mb-6">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger aria-label="Filter by status">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All leases</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="ended">Ended</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <FilterChips
+        options={STATUS_FILTER_OPTIONS}
+        value={statusFilter}
+        onChange={setStatusFilter}
+        ariaLabel="Filter by status"
+        className="mb-6"
+      />
 
       {loading ? (
         <CardListSkeleton count={4} className="space-y-3" />
@@ -61,28 +60,36 @@ export default function LeasesPage() {
         />
       ) : (
         <StaggerList className="space-y-3">
-          {visible.map((lease) => (
-            <ListItem key={lease.id}>
-              <Link
-                href={`/leases/${lease.id}`}
-                className="block rounded-xl bg-card p-5 shadow-soft transition-shadow hover:shadow-lift"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-foreground">{lease.tenant_name}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {lease.property_name} · Unit {lease.unit_label}
-                    </p>
-                  </div>
-                  <LeaseStatusBadge status={lease.status} />
-                </div>
-                <p className="mt-3 text-sm text-muted-foreground">
-                  R{lease.rent_amount} / month · from {lease.start_date}
-                  {lease.end_date ? ` to ${lease.end_date}` : ""}
-                </p>
-              </Link>
-            </ListItem>
-          ))}
+          {visible.map((lease) => {
+            const rent = formatZARParts(lease.rent_amount);
+            return (
+              <ListItem key={lease.id}>
+                <ListRow
+                  href={`/leases/${lease.id}`}
+                  eyebrow={`${lease.property_name} · Unit ${lease.unit_label}`}
+                  title={lease.tenant_name}
+                  trailing={<LeaseStatusBadge status={lease.status} />}
+                  footer={
+                    <div className="flex flex-wrap items-end justify-between gap-3">
+                      <p className="font-heading text-metric tabular-nums text-foreground">
+                        <span className="mr-1 align-baseline text-base font-semibold text-muted-foreground">
+                          {rent.symbol}
+                        </span>
+                        {rent.amount}
+                        <span className="ml-1.5 align-baseline text-sm font-medium text-muted-foreground">
+                          / month
+                        </span>
+                      </p>
+                      <MetaChip icon={CalendarRange}>
+                        {formatDate(lease.start_date)}
+                        {lease.end_date ? ` – ${formatDate(lease.end_date)}` : ""}
+                      </MetaChip>
+                    </div>
+                  }
+                />
+              </ListItem>
+            );
+          })}
         </StaggerList>
       )}
     </div>

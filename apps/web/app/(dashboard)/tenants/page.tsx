@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Tenant } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
+import { ListRow } from "@/components/list-row";
 import { ListItem, StaggerList } from "@/components/motion";
+import { PropertyIdentity } from "@/components/property-identity";
 import { CardListSkeleton } from "@/components/skeletons";
+import { TenancyStatusBadge } from "@/components/status-badge";
 import { ErrorText, PageHeader } from "@/components/ui";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -66,6 +67,8 @@ export default function TenantsPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="People"
+        size="display"
         title="Tenants"
         description="Everyone renting from you, and where they currently live."
       />
@@ -128,28 +131,15 @@ export default function TenantsPage() {
         <StaggerList className="grid gap-4 sm:grid-cols-2">
           {tenants.map((tenant) => (
             <ListItem key={tenant.id}>
-              <Link
+              <ListRow
                 href={`/tenants/${tenant.id}`}
-                className="block h-full rounded-xl bg-card p-5 shadow-soft transition-shadow hover:shadow-lift"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="font-semibold text-foreground">{tenant.name}</h2>
-                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                      {tenant.email}
-                    </p>
-                  </div>
-                  {tenant.unit_id ? (
-                    <Badge className="bg-status-active text-status-active-foreground">
-                      Housed
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-status-ended text-status-ended-foreground">
-                      Unassigned
-                    </Badge>
-                  )}
-                </div>
-              </Link>
+                leading={
+                  <PropertyIdentity seed={`tenant-${tenant.id}`} label={tenant.name} size="sm" />
+                }
+                title={tenant.name}
+                subtitle={tenant.email}
+                trailing={<TenancyStatusBadge assigned={Boolean(tenant.unit_id)} />}
+              />
             </ListItem>
           ))}
         </StaggerList>
