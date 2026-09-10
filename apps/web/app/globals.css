@@ -13,7 +13,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-heading: var(--font-plus-jakarta);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -40,6 +40,10 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
+  /* Near-black, for the editorial surface (portal + auth). */
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+
   /* Status tints — consumed only through components/status-badge.tsx */
   --color-status-open: var(--status-open);
   --color-status-open-foreground: var(--status-open-foreground);
@@ -60,6 +64,42 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Display steps. Additive names — they don't shadow text-xs…text-3xl, so
+     nothing that already ships re-renders. Tracking and weight ride along with
+     the size so pages stop hand-writing `tracking-tight` next to every heading. */
+  --text-display-lg: 3rem;
+  --text-display-lg--line-height: 1.02;
+  --text-display-lg--letter-spacing: -0.032em;
+  --text-display-lg--font-weight: 700;
+
+  --text-display: 2.25rem;
+  --text-display--line-height: 1.06;
+  --text-display--letter-spacing: -0.026em;
+  --text-display--font-weight: 700;
+
+  --text-display-sm: 1.75rem;
+  --text-display-sm--line-height: 1.15;
+  --text-display-sm--letter-spacing: -0.02em;
+  --text-display-sm--font-weight: 700;
+
+  /* Numerals as hero typography. Always pair with `tabular-nums` — without it
+     a stat row jitters every time a count changes. */
+  --text-metric-lg: 2.75rem;
+  --text-metric-lg--line-height: 1;
+  --text-metric-lg--letter-spacing: -0.03em;
+  --text-metric-lg--font-weight: 700;
+
+  --text-metric: 2rem;
+  --text-metric--line-height: 1;
+  --text-metric--letter-spacing: -0.022em;
+  --text-metric--font-weight: 700;
+
+  /* The rung that was missing entirely: letter-spaced uppercase eyebrow. */
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1.1;
+  --text-eyebrow--letter-spacing: 0.09em;
+  --text-eyebrow--font-weight: 600;
 
   /* Depth comes from these, not from 1px borders. */
   --shadow-soft:
@@ -82,9 +122,13 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.208 0.042 265.755);
 
-  /* Indigo — reserved for primary actions, active nav, and key emphasis. */
-  --primary: oklch(0.511 0.262 276.966);
+  /* Blue — reserved for primary actions, active nav, and key emphasis. */
+  --primary: oklch(0.545 0.215 259);
   --primary-foreground: oklch(0.985 0.003 247.858);
+
+  /* Near-black. Primary action on the editorial surface; see [data-surface]. */
+  --ink: oklch(0.205 0.015 264.8);
+  --ink-foreground: oklch(0.985 0.003 247.858);
 
   --secondary: oklch(0.968 0.007 247.896);
   --secondary-foreground: oklch(0.279 0.041 260.031);
@@ -92,21 +136,23 @@
   --muted: oklch(0.968 0.007 247.896);
   --muted-foreground: oklch(0.554 0.046 257.417);
 
-  /* Light indigo wash — active sidebar item, hover states. */
-  --accent: oklch(0.962 0.018 272.314);
-  --accent-foreground: oklch(0.457 0.24 277.023);
+  /* Light blue wash — active sidebar item, hover states. */
+  --accent: oklch(0.955 0.02 259);
+  --accent-foreground: oklch(0.47 0.19 259);
 
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0.003 247.858);
 
   --border: oklch(0.929 0.013 255.508);
   --input: oklch(0.869 0.022 252.894);
-  --ring: oklch(0.511 0.262 276.966);
+  --ring: oklch(0.545 0.215 259);
 
   --status-open: oklch(0.962 0.059 95.617);
   --status-open-foreground: oklch(0.473 0.137 46.201);
-  --status-progress: oklch(0.932 0.032 255.585);
-  --status-progress-foreground: oklch(0.424 0.199 265.638);
+  /* Cyan, not blue. Sat at hue 265 this was ~6° from the new primary, so
+     "in progress" and "primary action" read as the same colour. */
+  --status-progress: oklch(0.932 0.04 218);
+  --status-progress-foreground: oklch(0.43 0.11 222);
   --status-resolved: oklch(0.962 0.044 156.743);
   --status-resolved-foreground: oklch(0.448 0.119 151.328);
   --status-active: oklch(0.962 0.044 156.743);
@@ -116,12 +162,33 @@
 
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-primary: oklch(0.511 0.262 276.966);
+  --sidebar-primary: oklch(0.545 0.215 259);
   --sidebar-primary-foreground: oklch(0.985 0.003 247.858);
-  --sidebar-accent: oklch(0.962 0.018 272.314);
-  --sidebar-accent-foreground: oklch(0.457 0.24 277.023);
+  --sidebar-accent: oklch(0.955 0.02 259);
+  --sidebar-accent-foreground: oklch(0.47 0.19 259);
   --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.511 0.262 276.966);
+  --sidebar-ring: oklch(0.545 0.215 259);
+
+  /* Generated property identity. Hues orbit the brand hue so a generated
+     gradient can never collide with the --status-* palette. Retune the whole
+     family from here; lib/identity.ts only supplies the two hue numbers. */
+  --identity-hue-spread: 110;
+  --identity-chroma: 0.115;
+  --identity-lightness-from: 0.66;
+  --identity-lightness-to: 0.44;
+}
+
+/* Editorial surface — portal and auth. Re-declaring --primary on an ancestor
+   recolours the entire subtree, because @theme inline compiles `bg-primary`
+   to a live var() lookup rather than a build-time literal. So links, focus
+   rings, message bubbles and the portal tab bar all follow with no code
+   changes. To revert the whole treatment, delete this rule. */
+[data-surface="editorial"] {
+  --primary: var(--ink);
+  --primary-foreground: var(--ink-foreground);
+  --ring: var(--ink);
+  --accent: oklch(0.955 0.004 264.8);
+  --accent-foreground: var(--ink);
 }
 
 @layer base {
@@ -133,5 +200,18 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  /* Stands in for a property photo. lib/identity.ts sets --identity-h1/h2/angle
+     inline per property; lightness and chroma stay here so the whole family
+     retunes from the tokens above. */
+  .identity-surface {
+    background-image: linear-gradient(
+      var(--identity-angle, 135deg),
+      oklch(var(--identity-lightness-from) var(--identity-chroma) var(--identity-h1)),
+      oklch(var(--identity-lightness-to) var(--identity-chroma) var(--identity-h2))
+    );
   }
 }
