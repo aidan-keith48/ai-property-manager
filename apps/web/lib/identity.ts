@@ -16,8 +16,20 @@
 
 // Mirrors --identity-hue-spread in globals.css. Hue is the one value the
 // gradient can't read from CSS, because it varies per property.
-const BRAND_HUE = 259;
-const HUE_SPREAD = 110;
+//
+// The spread is deliberately narrow. At 110 the range reached ~314 (magenta)
+// at one end and ~204 (cyan) at the other — the first reads as a different
+// brand entirely, and the second collides with the cyan --status-progress
+// tint. Both stops now stay inside roughly 230-270, which is blue through
+// indigo; the monogram, four motifs and four gradient angles still give
+// plenty of differentiation between properties.
+const BRAND_HUE = 246;
+const HUE_SPREAD = 32;
+
+// The gradient's depth comes mostly from the lightness drop between stops
+// (see --identity-lightness-from/to), so the second stop only needs a small
+// hue shift. A large one walks the dark end out of the blue family.
+const STOP_HUE_DELTA = 8;
 
 /** FNV-1a. Small, fast, and well-distributed for short strings — we only need
  *  stable spread across a handful of buckets, not cryptographic quality. */
@@ -51,7 +63,7 @@ export function identityStyle(seed: string | number): IdentityStyle {
   const h1 = BRAND_HUE + offset;
   return {
     "--identity-h1": String(h1),
-    "--identity-h2": String(h1 + 18),
+    "--identity-h2": String(h1 + STOP_HUE_DELTA),
     // Four fixed angles rather than a free rotation: keeps the set coherent.
     "--identity-angle": `${115 + ((hash >>> 8) % 4) * 20}deg`,
   };

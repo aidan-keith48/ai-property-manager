@@ -41,7 +41,7 @@ export function ListRow({
 
         <div className="min-w-0 flex-1">
           {eyebrow ? (
-            <p className="text-eyebrow uppercase text-muted-foreground">{eyebrow}</p>
+            <p className="eyebrow text-muted-foreground">{eyebrow}</p>
           ) : null}
           <h3
             className={cn(

@@ -115,14 +115,12 @@ export function PropertyIdentity({
     >
       <Motif pattern={identityPattern(seed)} />
       {variant === "monogram" ? (
-        <span
-          className={cn(
-            "absolute inset-0 flex items-center justify-center",
-            "font-heading font-bold text-white/90",
-            dims.text,
-          )}
-        >
-          {monogram(label)}
+        // Size and colour deliberately sit on different elements. `cn` groups
+        // every text-* utility it doesn't recognise as a text colour, so
+        // passing `text-display-sm` and `text-white/90` through one call kept
+        // only the last and the monogram rendered in the inherited ink.
+        <span className={cn("absolute inset-0 flex items-center justify-center", dims.text)}>
+          <span className="font-heading font-bold text-white/95">{monogram(label)}</span>
         </span>
       ) : null}
       {children}

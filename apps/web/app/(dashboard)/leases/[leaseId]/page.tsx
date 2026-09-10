@@ -78,7 +78,7 @@ export default function LeaseDetailPage(props: PageProps<"/leases/[leaseId]">) {
 
         <dl className="mt-8 grid gap-5 sm:grid-cols-3">
           <div>
-            <dt className="text-eyebrow uppercase text-muted-foreground">Tenant</dt>
+            <dt className="eyebrow text-muted-foreground">Tenant</dt>
             <dd className="mt-1.5 text-sm font-medium">
               <Link href={`/tenants/${lease.tenant_id}`} className="text-primary hover:underline">
                 {lease.tenant_name}
@@ -86,13 +86,13 @@ export default function LeaseDetailPage(props: PageProps<"/leases/[leaseId]">) {
             </dd>
           </div>
           <div>
-            <dt className="text-eyebrow uppercase text-muted-foreground">Start date</dt>
+            <dt className="eyebrow text-muted-foreground">Start date</dt>
             <dd className="mt-1.5 text-sm font-medium text-foreground">
               {formatDate(lease.start_date)}
             </dd>
           </div>
           <div>
-            <dt className="text-eyebrow uppercase text-muted-foreground">End date</dt>
+            <dt className="eyebrow text-muted-foreground">End date</dt>
             <dd className="mt-1.5 text-sm font-medium text-foreground">
               {lease.end_date ? formatDate(lease.end_date) : "—"}
             </dd>

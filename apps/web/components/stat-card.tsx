@@ -33,7 +33,7 @@ export function StatCard({
   return (
     <SurfaceCard href={href}>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-eyebrow uppercase text-muted-foreground">{label}</p>
+        <p className="eyebrow text-muted-foreground">{label}</p>
         {Icon ? (
           <span
             className={cn(

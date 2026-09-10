@@ -95,12 +95,6 @@
   --text-metric--letter-spacing: -0.022em;
   --text-metric--font-weight: 700;
 
-  /* The rung that was missing entirely: letter-spaced uppercase eyebrow. */
-  --text-eyebrow: 0.6875rem;
-  --text-eyebrow--line-height: 1.1;
-  --text-eyebrow--letter-spacing: 0.09em;
-  --text-eyebrow--font-weight: 600;
-
   /* Depth comes from these, not from 1px borders. */
   --shadow-soft:
     0 1px 2px oklch(0.208 0.042 265.755 / 0.04),
@@ -172,7 +166,7 @@
   /* Generated property identity. Hues orbit the brand hue so a generated
      gradient can never collide with the --status-* palette. Retune the whole
      family from here; lib/identity.ts only supplies the two hue numbers. */
-  --identity-hue-spread: 110;
+  --identity-hue-spread: 32;
   --identity-chroma: 0.115;
   --identity-lightness-from: 0.66;
   --identity-lightness-to: 0.44;
@@ -204,6 +198,20 @@
 }
 
 @layer components {
+  /* The rung the type scale was missing: letter-spaced uppercase label.
+     Deliberately a component class rather than a --eyebrow token. The
+     `cn` package groups every `text-*` utility it doesn't recognise as a text
+     colour, so `cn("eyebrow text-muted-foreground")` silently kept only
+     the last one and the size never applied. Carrying no colour of its own,
+     `.eyebrow` composes with any text-* colour safely. */
+  .eyebrow {
+    font-size: 0.6875rem;
+    line-height: 1.1;
+    letter-spacing: 0.09em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
   /* Stands in for a property photo. lib/identity.ts sets --identity-h1/h2/angle
      inline per property; lightness and chroma stay here so the whole family
      retunes from the tokens above. */

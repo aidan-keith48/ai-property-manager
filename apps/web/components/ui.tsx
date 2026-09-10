@@ -48,7 +48,7 @@ export function AuthedImage({
  *  it gives a heading something to sit against without adding another weight. */
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <p className={cn("text-eyebrow uppercase text-muted-foreground", className)}>{children}</p>
+    <p className={cn("eyebrow text-muted-foreground", className)}>{children}</p>
   );
 }
 
@@ -94,11 +94,12 @@ export function PageHeader({
         {leading ? <div className="shrink-0">{leading}</div> : null}
         <div className="min-w-0">
           {eyebrow ? <Eyebrow className="mb-1.5">{eyebrow}</Eyebrow> : null}
+          {/* Size class kept out of a cn() call that also carries a colour —
+              see the note in property-identity.tsx. */}
           <h1
-            className={cn(
-              "font-heading text-foreground",
-              size === "display" ? "text-display" : "text-display-sm",
-            )}
+            className={`font-heading text-foreground ${
+              size === "display" ? "text-display" : "text-display-sm"
+            }`}
           >
             {title}
           </h1>

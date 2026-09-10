@@ -224,7 +224,7 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
 
           <dl className="mt-6 grid gap-4 sm:grid-cols-2">
             <div>
-              <dt className="text-eyebrow uppercase text-muted-foreground">Tenant</dt>
+              <dt className="eyebrow text-muted-foreground">Tenant</dt>
               <dd className="mt-1.5 text-sm font-medium">
                 <Link
                   href={`/tenants/${activeLease.tenant_id}`}
@@ -235,7 +235,7 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
               </dd>
             </div>
             <div>
-              <dt className="text-eyebrow uppercase text-muted-foreground">Start date</dt>
+              <dt className="eyebrow text-muted-foreground">Start date</dt>
               <dd className="mt-1.5 text-sm font-medium text-foreground">
                 {formatDate(activeLease.start_date)}
               </dd>

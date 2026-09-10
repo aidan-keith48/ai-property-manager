@@ -52,7 +52,7 @@ export function AuthShell({
           </span>
         </Link>
         <div className="relative max-w-sm">
-          <p className="text-eyebrow uppercase text-white/70">Built for landlords</p>
+          <p className="eyebrow text-white/70">Built for landlords</p>
           <p className="mt-3 font-heading text-display-sm text-white">
             Every property, tenant and issue in one place.
           </p>

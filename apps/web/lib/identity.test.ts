@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { hashSeed, identityPattern, identityStyle, monogram } from "./identity";
 
-const BRAND_HUE = 259;
-const HUE_SPREAD = 110;
+const BRAND_HUE = 246;
+const HUE_SPREAD = 32;
 
 describe("hashSeed", () => {
   it("is deterministic", () => {
@@ -54,7 +54,21 @@ describe("identityStyle", () => {
 
   it("offsets the second stop from the first", () => {
     const style = identityStyle("Seaside");
-    expect(Number(style["--identity-h2"]) - Number(style["--identity-h1"])).toBe(18);
+    expect(Number(style["--identity-h2"]) - Number(style["--identity-h1"])).toBe(8);
+  });
+
+  it("keeps BOTH stops inside the blue-to-indigo band", () => {
+    // Regression guard. The first version let the darker stop reach ~284,
+    // which rendered visibly purple and off-brand, and the light end reach
+    // ~204, which collided with the cyan --status-progress tint.
+    for (let seed = 0; seed < 400; seed++) {
+      const style = identityStyle(seed);
+      for (const key of ["--identity-h1", "--identity-h2"] as const) {
+        const hue = Number(style[key]);
+        expect(hue).toBeGreaterThanOrEqual(228);
+        expect(hue).toBeLessThanOrEqual(272);
+      }
+    }
   });
 
   it("emits a usable angle", () => {

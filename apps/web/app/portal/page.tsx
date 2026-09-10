@@ -81,7 +81,7 @@ export default function PortalRequestLinkPage() {
         className="mb-6 !rounded-xl"
       >
         <div className="absolute inset-0 flex flex-col justify-end p-6">
-          <p className="text-eyebrow uppercase text-white/70">Tenant portal</p>
+          <p className="eyebrow text-white/70">Tenant portal</p>
           <p className="mt-2 font-heading text-display-sm text-white">
             Something broken?
             <br />
