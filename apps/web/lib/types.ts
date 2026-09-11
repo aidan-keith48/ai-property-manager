@@ -8,6 +8,8 @@ export interface Property {
   name: string;
   address: string;
   first_photo_id?: number | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface PropertyPhoto {

@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
@@ -13,3 +13,7 @@ class Property(Base, TimestampMixin):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     address: Mapped[str] = mapped_column(String(500), nullable=False)
+    # Server-computed via app.geocoding — never client-settable. Null when
+    # the address hasn't been geocoded yet or geocoding failed/found nothing.
+    latitude: Mapped[float | None] = mapped_column(Numeric(9, 6))
+    longitude: Mapped[float | None] = mapped_column(Numeric(9, 6))

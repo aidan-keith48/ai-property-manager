@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     storage_local_root: str = "../../uploads"
     upload_max_bytes: int = 25 * 1024 * 1024
 
+    # Free OpenStreetMap Nominatim geocoding for property addresses — no API
+    # key, no billing. Off by default in tests (see conftest.py) so the
+    # existing suite's many POST /properties calls never hit the network.
+    geocoding_enabled: bool = True
+    geocoding_user_agent: str = "AIPropertyManager/1.0"
+
     cors_origins: str = "http://localhost:3000"
 
     @property

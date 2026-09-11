@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useRef, useState, type FormEvent } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, Bath, BedDouble, DoorOpen, ImagePlus, Loader2, MapPin, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +23,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+// Leaflet touches `window` at import time, so it can't run during SSR even
+// though this whole page is already a client component.
+const PropertyMap = dynamic(
+  () => import("@/components/property-map").then((mod) => mod.PropertyMap),
+  { ssr: false },
+);
 
 export default function PropertyDetailPage(props: PageProps<"/properties/[propertyId]">) {
   const { propertyId } = use(props.params);
@@ -245,6 +253,21 @@ export default function PropertyDetailPage(props: PageProps<"/properties/[proper
             {uploadingPhoto ? "Uploading..." : "Add photo"}
           </Button>
         </div>
+      </Card>
+
+      <SectionHeader title="Location" />
+      <Card className="mb-8 p-6">
+        {property.latitude != null && property.longitude != null ? (
+          <PropertyMap
+            latitude={property.latitude}
+            longitude={property.longitude}
+            label={property.name}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            We couldn&apos;t automatically locate this address on a map.
+          </p>
+        )}
       </Card>
 
       <Card className="mb-8 p-6">

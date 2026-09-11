@@ -3,8 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.audit import log_action
 from app.auth.dependencies import require_landlord
+from app.config import settings
 from app.crud.authz import get_owned_property
 from app.db import get_db
+from app.geocoding import geocode_address
 from app.models import ActorType, Landlord, Property, PropertyPhoto
 from app.schemas.property import PropertyCreate, PropertyRead, PropertyUpdate
 
@@ -34,6 +36,8 @@ def _to_property_read(property_: Property, first_photo_id: int | None) -> Proper
         name=property_.name,
         address=property_.address,
         first_photo_id=first_photo_id,
+        latitude=property_.latitude,
+        longitude=property_.longitude,
     )
 
 
@@ -44,6 +48,10 @@ def create_property(
     db: Session = Depends(get_db),
 ) -> PropertyRead:
     property_ = Property(landlord_id=landlord.id, name=payload.name, address=payload.address)
+    if settings.geocoding_enabled:
+        coordinates = geocode_address(payload.address)
+        if coordinates is not None:
+            property_.latitude, property_.longitude = coordinates
     db.add(property_)
     db.flush()  # assign property_.id before it's referenced below
 
@@ -92,8 +100,15 @@ def update_property(
     property_ = get_owned_property(db, property_id, landlord)
     if payload.name is not None:
         property_.name = payload.name
+    address_changed = payload.address is not None and payload.address != property_.address
     if payload.address is not None:
         property_.address = payload.address
+    if address_changed and settings.geocoding_enabled:
+        coordinates = geocode_address(property_.address)
+        # A wrong pin (stale coordinates for the old address) is worse than
+        # no pin, so a failed re-geocode explicitly clears the old values
+        # rather than leaving them in place.
+        property_.latitude, property_.longitude = coordinates if coordinates else (None, None)
 
     log_action(
         db,

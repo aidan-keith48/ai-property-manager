@@ -18,3 +18,5 @@ class PropertyRead(BaseModel):
     name: str
     address: str
     first_photo_id: int | None = None
+    latitude: float | None = None
+    longitude: float | None = None
