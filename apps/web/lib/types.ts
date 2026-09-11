@@ -7,6 +7,14 @@ export interface Property {
   id: number;
   name: string;
   address: string;
+  first_photo_id?: number | null;
+}
+
+export interface PropertyPhoto {
+  id: number;
+  property_id: number;
+  file_type: string;
+  uploaded_at: string;
 }
 
 export interface Unit {

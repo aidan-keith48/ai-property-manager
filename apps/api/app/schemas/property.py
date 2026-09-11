@@ -17,3 +17,4 @@ class PropertyRead(BaseModel):
     id: int
     name: str
     address: str
+    first_photo_id: int | None = None
