@@ -35,6 +35,7 @@ export interface Lease {
   end_date: string | null;
   rent_amount: number;
   status: LeaseStatus;
+  ended_at: string | null;
 }
 
 export interface LeaseDocument {

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
@@ -27,3 +27,4 @@ class LeaseRead(BaseModel):
     end_date: date | None
     rent_amount: float
     status: LeaseStatus
+    ended_at: datetime | None = None

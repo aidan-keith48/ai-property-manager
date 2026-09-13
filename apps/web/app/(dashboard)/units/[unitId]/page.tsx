@@ -44,6 +44,7 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
   const [selectedTenantId, setSelectedTenantId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [rentAmount, setRentAmount] = useState("");
+  const [endLeaseDate, setEndLeaseDate] = useState(() => new Date().toISOString().slice(0, 10));
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function loadData() {
@@ -122,7 +123,10 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
   async function handleEndLease() {
     if (!activeLease) return;
     try {
-      await apiFetch(`/leases/${activeLease.id}/end`, { method: "POST", json: {} });
+      await apiFetch(`/leases/${activeLease.id}/end`, {
+        method: "POST",
+        json: { end_date: endLeaseDate },
+      });
       await loadData();
       toast.success("Lease ended");
     } catch (err) {
@@ -252,7 +256,22 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
                 End lease
               </Button>
             }
-          />
+          >
+            <div className="py-2">
+              <Label htmlFor="end-lease-date" className="mb-2">
+                Effective end date
+              </Label>
+              <Input
+                id="end-lease-date"
+                type="date"
+                value={endLeaseDate}
+                onChange={(e) => setEndLeaseDate(e.target.value)}
+              />
+              {endLeaseDate < activeLease.start_date ? (
+                <ErrorText>Can&apos;t be before the lease&apos;s start date.</ErrorText>
+              ) : null}
+            </div>
+          </ConfirmDialog>
 
           <div className="mt-6 border-t border-border pt-5">
             <h3 className="text-sm font-semibold text-foreground">Lease documents</h3>

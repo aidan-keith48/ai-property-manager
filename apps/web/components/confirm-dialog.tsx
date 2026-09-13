@@ -16,19 +16,23 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Replaces native confirm() for destructive actions. */
+/** Replaces native confirm() for destructive actions. `children`, when
+ * given, renders between the description and the footer — e.g. a field
+ * the confirming action needs (see the End Lease date picker). */
 export function ConfirmDialog({
   trigger,
   title,
   description,
   confirmLabel = "Confirm",
   onConfirm,
+  children,
 }: {
   trigger: ReactNode;
   title: string;
   description: string;
   confirmLabel?: string;
   onConfirm: () => void;
+  children?: ReactNode;
 }) {
   return (
     <AlertDialog>
@@ -38,6 +42,7 @@ export function ConfirmDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {children}
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction

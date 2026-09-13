@@ -69,10 +69,18 @@ def create_lease(
 def end_lease(
     db: Session, lease: Lease, *, end_date: date | None = None, actor_landlord_id: int
 ) -> Lease:
-    """The only code path allowed to clear tenant.unit_id. See create_lease()."""
+    """The only code path allowed to clear tenant.unit_id. See create_lease().
+
+    end_date defaults to today when omitted — a lease that has ended always
+    has an end date, that's not just a UI convention. When a caller does
+    supply one explicitly, it must not precede the lease's own start_date."""
+    if end_date is not None and end_date < lease.start_date:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "End date can't be before the lease start date",
+        )
     lease.status = LeaseStatus.ENDED
-    if end_date is not None:
-        lease.end_date = end_date
+    lease.end_date = end_date if end_date is not None else date.today()
 
     tenant = db.get(Tenant, lease.tenant_id)
     if tenant is not None and tenant.unit_id == lease.unit_id:

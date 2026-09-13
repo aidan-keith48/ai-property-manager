@@ -1,3 +1,6 @@
+from datetime import date
+
+
 def _make_property_and_unit(client, headers) -> tuple[int, int]:
     property_resp = client.post(
         "/properties", json={"name": "Building", "address": "Addr"}, headers=headers
@@ -155,6 +158,112 @@ def test_new_lease_allowed_after_previous_lease_ended(client, landlord_token):
         headers=headers,
     )
     assert second.status_code == 201
+
+
+def test_ending_lease_with_explicit_end_date_is_respected(client, landlord_token):
+    headers = landlord_token()
+    _, unit_id = _make_property_and_unit(client, headers)
+    tenant_id = _make_tenant(client, headers, "explicit-end-date@example.com")
+
+    lease = client.post(
+        "/leases",
+        json={
+            "unit_id": unit_id,
+            "tenant_id": tenant_id,
+            "start_date": "2026-01-01",
+            "rent_amount": 10000.00,
+        },
+        headers=headers,
+    )
+    lease_id = lease.json()["id"]
+
+    ended = client.post(
+        f"/leases/{lease_id}/end", json={"end_date": "2026-03-15"}, headers=headers
+    )
+    assert ended.status_code == 200
+    assert ended.json()["end_date"] == "2026-03-15"
+
+
+def test_ending_lease_without_end_date_defaults_to_today(client, landlord_token):
+    headers = landlord_token()
+    _, unit_id = _make_property_and_unit(client, headers)
+    tenant_id = _make_tenant(client, headers, "default-end-date@example.com")
+
+    lease = client.post(
+        "/leases",
+        json={
+            "unit_id": unit_id,
+            "tenant_id": tenant_id,
+            "start_date": "2026-01-01",
+            "rent_amount": 10000.00,
+        },
+        headers=headers,
+    )
+    lease_id = lease.json()["id"]
+
+    ended = client.post(f"/leases/{lease_id}/end", json={}, headers=headers)
+    assert ended.status_code == 200
+    assert ended.json()["end_date"] == date.today().isoformat()
+
+
+def test_ending_lease_before_start_date_is_rejected(client, landlord_token):
+    headers = landlord_token()
+    _, unit_id = _make_property_and_unit(client, headers)
+    tenant_id = _make_tenant(client, headers, "backdated-too-far@example.com")
+
+    lease = client.post(
+        "/leases",
+        json={
+            "unit_id": unit_id,
+            "tenant_id": tenant_id,
+            "start_date": "2026-06-01",
+            "rent_amount": 10000.00,
+        },
+        headers=headers,
+    )
+    lease_id = lease.json()["id"]
+
+    ended = client.post(
+        f"/leases/{lease_id}/end", json={"end_date": "2026-01-01"}, headers=headers
+    )
+    assert ended.status_code == 422
+
+    # And the lease is unaffected by the rejected attempt.
+    fetched = client.get(f"/leases/{lease_id}", headers=headers)
+    assert fetched.json()["status"] == "active"
+
+
+def test_ended_at_reflects_the_audit_timestamp(client, landlord_token):
+    headers = landlord_token()
+    _, unit_id = _make_property_and_unit(client, headers)
+    tenant_id = _make_tenant(client, headers, "ended-at-tenant@example.com")
+
+    lease = client.post(
+        "/leases",
+        json={
+            "unit_id": unit_id,
+            "tenant_id": tenant_id,
+            "start_date": "2026-01-01",
+            "rent_amount": 10000.00,
+        },
+        headers=headers,
+    )
+    lease_id = lease.json()["id"]
+    assert lease.json()["ended_at"] is None
+
+    before = client.get(f"/leases/{lease_id}", headers=headers)
+    assert before.json()["ended_at"] is None
+
+    ended = client.post(f"/leases/{lease_id}/end", json={}, headers=headers)
+    assert ended.json()["ended_at"] is not None
+
+    # Also correct when read back via both the detail and list endpoints.
+    detail = client.get(f"/leases/{lease_id}", headers=headers)
+    assert detail.json()["ended_at"] is not None
+
+    listing = client.get("/leases", headers=headers)
+    listed = next(item for item in listing.json() if item["id"] == lease_id)
+    assert listed["ended_at"] is not None
 
 
 def test_lease_scoped_to_owning_landlord(client, landlord_token):
