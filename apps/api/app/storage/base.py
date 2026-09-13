@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import BinaryIO
 
 
 class StorageBackend(ABC):
@@ -8,8 +7,13 @@ class StorageBackend(ABC):
     change, not a rewrite — callers only ever depend on this interface."""
 
     @abstractmethod
-    def save(self, key: str, file: BinaryIO) -> str:
-        """Persist a file under `key`, returning the stored path/reference."""
+    def save(self, key: str, content: bytes) -> str:
+        """Persist `content` under `key`, returning the stored path/reference.
+
+        Takes already-read bytes rather than a file-like object so callers
+        are forced through app.uploads.validate_upload() (or another
+        size-bounded read) first — there's no code path left that reads an
+        upload straight onto disk unbounded."""
 
     @abstractmethod
     def read(self, key: str) -> bytes:

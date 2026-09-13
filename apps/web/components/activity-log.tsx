@@ -28,6 +28,8 @@ const ACTION_LABELS: Record<string, string> = {
   "lease_document.upload": "Lease document uploaded",
   "lease_document.download": "Lease document viewed",
   "lease_document.delete": "Lease document deleted",
+  "property_photo.upload": "Property photo uploaded",
+  "property_photo.delete": "Property photo deleted",
 };
 
 function describe(entry: AuditLogEntry): string {

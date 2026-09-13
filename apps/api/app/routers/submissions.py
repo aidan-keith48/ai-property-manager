@@ -13,6 +13,7 @@ from app.ratelimit import rate_limit
 from app.schemas.submission import SubmissionMessageRead, SubmissionRead
 from app.storage import get_storage
 from app.storage.base import StorageBackend
+from app.uploads import ALLOWED_IMAGE_TYPES, validate_upload
 
 router = APIRouter(prefix="/submissions", tags=["submissions"])
 
@@ -44,8 +45,9 @@ async def create_submission(
     for photo in photos:
         if not photo.filename:
             continue
+        content = validate_upload(photo, allowed_content_types=ALLOWED_IMAGE_TYPES)
         key = f"submissions/{tenant.id}/{uuid4().hex}_{photo.filename}"
-        photo_paths.append(storage.save(key, photo.file))
+        photo_paths.append(storage.save(key, content))
 
     submission = Submission(
         tenant_id=tenant.id,

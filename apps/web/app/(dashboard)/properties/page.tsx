@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Property } from "@/lib/types";
+import { useAuthedPhotoUrl } from "@/lib/use-authed-photo-url";
 import { EmptyState } from "@/components/empty-state";
 import { MetaChip } from "@/components/meta-chip";
 import { ListItem, StaggerList } from "@/components/motion";
@@ -17,6 +18,25 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+/** PropertyIdentity's `photoUrl` renders as a CSS background-image, not an
+ * <img> — deliberately, so this stays consistent with the monogram fallback
+ * it replaces rather than swapping in a differently-styled bare image. */
+function PropertyHero({ property }: { property: Property }) {
+  const photoPath =
+    property.first_photo_id != null
+      ? `/properties/${property.id}/photos/${property.first_photo_id}`
+      : null;
+  const photoUrl = useAuthedPhotoUrl(photoPath);
+  return (
+    <PropertyIdentity
+      seed={property.id}
+      label={property.name}
+      size="hero"
+      photoUrl={photoUrl ?? undefined}
+    />
+  );
+}
 
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -118,7 +138,7 @@ export default function PropertiesPage() {
                   genuine browse surface. The name renders below the band and
                   not over it, so it stays a single text match for the specs. */}
               <SurfaceCard href={`/properties/${property.id}`} padding="none">
-                <PropertyIdentity seed={property.id} label={property.name} size="hero" />
+                <PropertyHero property={property} />
                 <div className="p-5">
                   <h2 className="truncate font-heading text-base font-semibold text-foreground">
                     {property.name}
