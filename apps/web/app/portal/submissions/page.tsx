@@ -9,10 +9,13 @@ import { toast } from "sonner";
 import { apiFetch, isUnauthorized, setTenantToken, TENANT_TOKEN_STORAGE_KEY } from "@/lib/api";
 import type { Submission } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
+import { ListRow } from "@/components/list-row";
 import { ListItem, StaggerList } from "@/components/motion";
 import { CardListSkeleton } from "@/components/skeletons";
 import { SubmissionStatusBadge } from "@/components/status-badge";
+import { Eyebrow } from "@/components/ui";
 import { Button } from "@/components/ui/button";
+import { formatDate } from "@/lib/format";
 
 export default function PortalSubmissionsPage() {
   const router = useRouter();
@@ -40,8 +43,9 @@ export default function PortalSubmissionsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold tracking-tight text-foreground">My reports</h1>
-      <p className="mt-1 mb-6 text-sm text-muted-foreground">
+      <Eyebrow className="mb-2">History</Eyebrow>
+      <h1 className="font-heading text-display text-foreground">My reports</h1>
+      <p className="mt-2 mb-7 text-sm text-muted-foreground">
         Everything you&apos;ve reported, newest first.
       </p>
 
@@ -65,20 +69,17 @@ export default function PortalSubmissionsPage() {
         <StaggerList className="space-y-3">
           {submissions.map((submission) => (
             <ListItem key={submission.id}>
-              <Link
+              <ListRow
                 href={`/portal/submissions/${submission.id}`}
-                className="block rounded-xl bg-card p-5 shadow-soft transition-shadow hover:shadow-lift"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(submission.created_at).toLocaleDateString()}
+                eyebrow={formatDate(submission.created_at)}
+                title={`Report #${submission.id}`}
+                trailing={<SubmissionStatusBadge status={submission.status} />}
+                footer={
+                  <p className="line-clamp-2 text-sm text-muted-foreground">
+                    {submission.description}
                   </p>
-                  <SubmissionStatusBadge status={submission.status} />
-                </div>
-                <p className="mt-2 line-clamp-2 text-sm text-foreground">
-                  {submission.description}
-                </p>
-              </Link>
+                }
+              />
             </ListItem>
           ))}
         </StaggerList>

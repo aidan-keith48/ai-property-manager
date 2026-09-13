@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Inbox as InboxIcon, MessageSquare } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
 import type { InboxSubmissionItem, Property, SubmissionStatus, Tenant } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
+import { FilterChips, type FilterOption } from "@/components/filter-chips";
+import { ListRow } from "@/components/list-row";
+import { MetaChip } from "@/components/meta-chip";
 import { ListItem, StaggerList } from "@/components/motion";
 import { CardListSkeleton } from "@/components/skeletons";
 import { SubmissionStatusBadge } from "@/components/status-badge";
@@ -18,26 +20,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatRelative } from "@/lib/format";
 
 // Radix Select reserves "" as a value, so "all" is the sentinel for no filter.
 const ALL = "all";
 
-const STATUS_FILTER_OPTIONS: { value: SubmissionStatus; label: string }[] = [
+/** Status is chips rather than a select: the option set is small and fixed,
+ *  and it matches the reference designs. Property and tenant stay selects —
+ *  those lists are unbounded, and the inbox spec addresses them positionally
+ *  (getByRole("combobox").nth(1)), so only the last select could be removed
+ *  without shifting the indices it depends on. */
+const STATUS_FILTER_OPTIONS: FilterOption<SubmissionStatus | typeof ALL>[] = [
+  { value: ALL, label: "All" },
   { value: "open", label: "Open" },
   { value: "in_progress", label: "In progress" },
   { value: "resolved", label: "Resolved" },
 ];
-
-function timeAgo(iso: string): string {
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 export default function InboxPage() {
   const [items, setItems] = useState<InboxSubmissionItem[]>([]);
@@ -84,8 +82,18 @@ export default function InboxPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Maintenance"
+        size="display"
         title="Inbox"
         description="Everything your tenants have reported, in one place."
+      />
+
+      <FilterChips
+        options={STATUS_FILTER_OPTIONS}
+        value={statusFilter as SubmissionStatus | typeof ALL}
+        onChange={setStatusFilter}
+        ariaLabel="Filter by status"
+        className="mb-3"
       />
 
       <div className="mb-6 flex flex-wrap gap-3">
@@ -117,19 +125,6 @@ export default function InboxPage() {
           </SelectContent>
         </Select>
 
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger aria-label="Filter by status">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            {STATUS_FILTER_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {loading ? (
@@ -148,32 +143,29 @@ export default function InboxPage() {
         <StaggerList className="space-y-3">
           {items.map((item) => (
             <ListItem key={item.id}>
-              <Link
+              <ListRow
                 href={`/inbox/${item.id}`}
-                className="block rounded-xl bg-card p-5 shadow-soft transition-shadow hover:shadow-lift"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground">{item.tenant_name}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {item.property_name} · Unit {item.unit_label}
-                    </p>
-                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                      {item.description}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-2">
+                eyebrow={`${item.property_name} · Unit ${item.unit_label}`}
+                title={item.tenant_name}
+                trailing={
+                  <>
                     <SubmissionStatusBadge status={item.status} />
-                    <span className="text-xs text-muted-foreground">
-                      {timeAgo(item.last_activity_at)}
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MessageSquare className="size-3" />
-                      {item.message_count}
-                    </span>
+                    <time
+                      dateTime={item.last_activity_at}
+                      className="text-xs text-muted-foreground"
+                      suppressHydrationWarning
+                    >
+                      {formatRelative(item.last_activity_at)}
+                    </time>
+                  </>
+                }
+                footer={
+                  <div className="space-y-3">
+                    <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
+                    <MetaChip icon={MessageSquare}>{item.message_count}</MetaChip>
                   </div>
-                </div>
-              </Link>
+                }
+              />
             </ListItem>
           ))}
         </StaggerList>

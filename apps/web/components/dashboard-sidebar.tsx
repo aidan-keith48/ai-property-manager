@@ -46,13 +46,15 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              "relative flex items-center gap-3 rounded-lg py-2 pl-4 pr-3 text-sm font-medium transition-colors",
+              // The indicator bar is a pseudo-element so the label baseline
+              // doesn't shift between active and inactive items.
               active
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground before:absolute before:left-0 before:top-1/2 before:h-5 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-sidebar-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
-            <Icon className="size-4" />
+            <Icon className="size-4 shrink-0" />
             {label}
           </Link>
         );
@@ -86,11 +88,13 @@ function SidebarFooter() {
 
 function SidebarBrand() {
   return (
-    <Link href="/" className="flex items-center gap-2 px-3">
+    <Link href="/" className="flex items-center gap-2.5 px-3">
       <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
         <Building2 className="size-4" />
       </span>
-      <span className="text-sm font-semibold text-foreground">Property Manager</span>
+      <span className="font-heading text-sm font-bold tracking-tight text-foreground">
+        Property Manager
+      </span>
     </Link>
   );
 }

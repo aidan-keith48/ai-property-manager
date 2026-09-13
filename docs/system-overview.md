@@ -115,8 +115,23 @@ once a tenant is selected):
 
 **Ending a lease** (`POST /leases/{id}/end`, the "End Lease" button):
 1. Sets `lease.status = ended`.
-2. Clears `tenant.unit_id` back to `None` — but only if it still points
+2. Sets `lease.end_date` to whatever date the landlord picked in the
+   confirmation dialog (defaults to today, but is backdatable/postdatable —
+   `end_date` is a business date, so a landlord recording a lease that
+   already ended last month needs to say so). If a caller omits `end_date`
+   entirely, it still defaults to today server-side — "a lease that has
+   ended always has an end date" is enforced as an invariant, not left to
+   the UI. Rejects with 422 if the given `end_date` precedes the lease's
+   own `start_date`.
+3. Clears `tenant.unit_id` back to `None` — but only if it still points
    at *this* lease's unit (a defensive check against edge cases).
+
+`LeaseRead` also carries `ended_at` — the precise moment `end_lease()` ran,
+read back from the `lease.end` `AuditLog` row rather than stored as its own
+column (avoids duplicating data the audit log already captures exactly).
+This is deliberately separate from `end_date`: `end_date` is the business
+date the lease's term ended (can be backdated), `ended_at` is when someone
+actually clicked the button.
 
 Once a lease ends, that tenant becomes available again in the "assign a
 tenant" dropdown on any unit's page (`app/(dashboard)/units/[unitId]/page.tsx`

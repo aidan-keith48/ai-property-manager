@@ -6,6 +6,7 @@ from app.models.lease import Lease, LeaseStatus
 from app.models.lease_document import LeaseDocument
 from app.models.magic_link import MagicLink
 from app.models.property import Property
+from app.models.property_photo import PropertyPhoto
 from app.models.submission import Submission, SubmissionStatus
 from app.models.tenant import Tenant
 from app.models.unit import Unit
@@ -21,6 +22,7 @@ __all__ = [
     "LeaseDocument",
     "MagicLink",
     "Property",
+    "PropertyPhoto",
     "Submission",
     "SubmissionStatus",
     "Tenant",

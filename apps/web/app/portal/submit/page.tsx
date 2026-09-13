@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { apiFetch, ApiError, isUnauthorized, setTenantToken, TENANT_TOKEN_STORAGE_KEY } from "@/lib/api";
 import type { Submission } from "@/lib/types";
+import { formatMaxUploadSize, MAX_UPLOAD_BYTES } from "@/lib/uploads";
 import { ErrorText } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -47,6 +48,14 @@ export default function PortalSubmitPage() {
 
   function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
+    const oversized = files.find((file) => file.size > MAX_UPLOAD_BYTES);
+    if (oversized) {
+      setError(`"${oversized.name}" exceeds the ${formatMaxUploadSize()} limit`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setPreviews([]);
+      return;
+    }
+    setError("");
     setPreviews(files.map((file) => ({ name: file.name, url: URL.createObjectURL(file) })));
   }
 
@@ -97,7 +106,7 @@ export default function PortalSubmitPage() {
         <div className="flex size-11 items-center justify-center rounded-xl bg-status-resolved text-status-resolved-foreground">
           <CheckCircle2 className="size-5" />
         </div>
-        <h1 className="mt-4 text-xl font-bold tracking-tight text-foreground">
+        <h1 className="mt-4 font-heading text-display-sm text-foreground">
           Thanks — we&apos;ve got it
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -126,7 +135,7 @@ export default function PortalSubmitPage() {
 
   return (
     <Card className="p-6">
-      <h1 className="text-xl font-bold tracking-tight text-foreground">Report an issue</h1>
+      <h1 className="font-heading text-display-sm text-foreground">Report an issue</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Tell your landlord what&apos;s wrong. Photos help a lot.
       </p>
@@ -155,7 +164,7 @@ export default function PortalSubmitPage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             multiple
             onChange={handleFilesChange}
             className="max-w-full text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"

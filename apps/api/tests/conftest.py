@@ -6,6 +6,11 @@ os.environ.setdefault(
     "DATABASE_URL", "postgresql+psycopg://apm:apm_dev_password@localhost:5433/apm_test"
 )
 os.environ.setdefault("ENVIRONMENT", "test")
+# Off by default so the many existing tests that POST /properties as setup
+# never make a live network call to Nominatim — slow, flaky, and a real
+# risk of tripping its 1-req/sec usage policy mid-run. Geocoding-specific
+# tests opt back in explicitly per-test.
+os.environ.setdefault("GEOCODING_ENABLED", "false")
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

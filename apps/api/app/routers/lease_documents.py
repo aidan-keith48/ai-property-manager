@@ -9,6 +9,7 @@ from app.models import ActorType, Lease, LeaseDocument, Property, Unit
 from app.schemas.lease_document import LeaseDocumentRead
 from app.storage import get_storage
 from app.storage.base import StorageBackend
+from app.uploads import ALLOWED_DOCUMENT_TYPES, validate_upload
 
 router = APIRouter(prefix="/leases/{lease_id}/documents", tags=["lease-documents"])
 
@@ -55,8 +56,9 @@ def upload_lease_document(
             status.HTTP_403_FORBIDDEN, "Only the landlord can upload lease documents"
         )
 
+    content = validate_upload(file, allowed_content_types=ALLOWED_DOCUMENT_TYPES)
     key = f"lease_documents/{lease.id}/{file.filename}"
-    stored_path = storage.save(key, file.file)
+    stored_path = storage.save(key, content)
 
     document = LeaseDocument(
         lease_id=lease.id,

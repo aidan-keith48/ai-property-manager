@@ -7,6 +7,16 @@ export interface Property {
   id: number;
   name: string;
   address: string;
+  first_photo_id?: number | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface PropertyPhoto {
+  id: number;
+  property_id: number;
+  file_type: string;
+  uploaded_at: string;
 }
 
 export interface Unit {
@@ -35,6 +45,7 @@ export interface Lease {
   end_date: string | null;
   rent_amount: number;
   status: LeaseStatus;
+  ended_at: string | null;
 }
 
 export interface LeaseDocument {

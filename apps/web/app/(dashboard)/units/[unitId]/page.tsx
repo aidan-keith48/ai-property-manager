@@ -2,17 +2,20 @@
 
 import { use, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowLeft, DoorOpen, FileText, Loader2, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Bath, BedDouble, DoorOpen, FileText, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { apiFetch, ApiError } from "@/lib/api";
+import { formatDate, formatZARParts } from "@/lib/format";
 import type { Lease, LeaseDocument, Tenant, Unit } from "@/lib/types";
+import { formatMaxUploadSize, MAX_UPLOAD_BYTES } from "@/lib/uploads";
 import { ActivityLog } from "@/components/activity-log";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
+import { MetaChip, MetaChipRow } from "@/components/meta-chip";
 import { DetailSkeleton } from "@/components/skeletons";
 import { LeaseStatusBadge } from "@/components/status-badge";
-import { ErrorText, PageHeader } from "@/components/ui";
+import { ErrorText, PageHeader, SectionHeader } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -42,6 +45,7 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
   const [selectedTenantId, setSelectedTenantId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [rentAmount, setRentAmount] = useState("");
+  const [endLeaseDate, setEndLeaseDate] = useState(() => new Date().toISOString().slice(0, 10));
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function loadData() {
@@ -120,7 +124,10 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
   async function handleEndLease() {
     if (!activeLease) return;
     try {
-      await apiFetch(`/leases/${activeLease.id}/end`, { method: "POST", json: {} });
+      await apiFetch(`/leases/${activeLease.id}/end`, {
+        method: "POST",
+        json: { end_date: endLeaseDate },
+      });
       await loadData();
       toast.success("Lease ended");
     } catch (err) {
@@ -129,13 +136,20 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
   }
 
   async function handleUploadDocument() {
-    if (!activeLease || !fileInputRef.current?.files?.[0]) return;
+    const file = fileInputRef.current?.files?.[0];
+    if (!activeLease || !file) return;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      const message = `File exceeds the ${formatMaxUploadSize()} limit`;
+      setError(message);
+      toast.error(message);
+      return;
+    }
     const formData = new FormData();
-    formData.append("file", fileInputRef.current.files[0]);
+    formData.append("file", file);
     setUploading(true);
     try {
       await apiFetch(`/leases/${activeLease.id}/documents`, { method: "POST", formData });
-      fileInputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
       await loadData();
       toast.success("Document uploaded");
     } catch (err) {
@@ -190,21 +204,40 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
       </Button>
 
       <PageHeader
+        eyebrow="Unit"
+        size="display"
         title={`Unit ${unit.unit_label}`}
-        description={`${unit.bedrooms ?? "?"} bed · ${unit.bathrooms ?? "?"} bath`}
+        description={
+          <MetaChipRow>
+            <MetaChip icon={BedDouble}>{unit.bedrooms ?? "?"} bed</MetaChip>
+            <MetaChip icon={Bath}>{unit.bathrooms ?? "?"} bath</MetaChip>
+          </MetaChipRow>
+        }
       />
 
       {activeLease ? (
         <Card className="mb-8 p-6">
           <div className="flex items-start justify-between gap-4">
-            <h2 className="text-sm font-semibold text-foreground">Current lease</h2>
+            <h2 className="font-heading text-lg font-semibold tracking-tight text-foreground">
+              Current lease
+            </h2>
             <LeaseStatusBadge status={activeLease.status} />
           </div>
 
-          <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+          <p className="mt-5 font-heading text-metric tabular-nums text-foreground">
+            <span className="mr-1.5 align-baseline text-lg font-semibold text-muted-foreground">
+              {formatZARParts(activeLease.rent_amount).symbol}
+            </span>
+            {formatZARParts(activeLease.rent_amount).amount}
+            <span className="ml-1.5 align-baseline text-sm font-medium text-muted-foreground">
+              / month
+            </span>
+          </p>
+
+          <dl className="mt-6 grid gap-4 sm:grid-cols-2">
             <div>
-              <dt className="text-xs font-medium text-muted-foreground">Tenant</dt>
-              <dd className="mt-1 text-sm font-medium">
+              <dt className="eyebrow text-muted-foreground">Tenant</dt>
+              <dd className="mt-1.5 text-sm font-medium">
                 <Link
                   href={`/tenants/${activeLease.tenant_id}`}
                   className="text-primary hover:underline"
@@ -214,15 +247,9 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-medium text-muted-foreground">Rent</dt>
-              <dd className="mt-1 text-sm font-medium text-foreground">
-                R{activeLease.rent_amount}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground">Start date</dt>
-              <dd className="mt-1 text-sm font-medium text-foreground">
-                {activeLease.start_date}
+              <dt className="eyebrow text-muted-foreground">Start date</dt>
+              <dd className="mt-1.5 text-sm font-medium text-foreground">
+                {formatDate(activeLease.start_date)}
               </dd>
             </div>
           </dl>
@@ -237,7 +264,22 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
                 End lease
               </Button>
             }
-          />
+          >
+            <div className="py-2">
+              <Label htmlFor="end-lease-date" className="mb-2">
+                Effective end date
+              </Label>
+              <Input
+                id="end-lease-date"
+                type="date"
+                value={endLeaseDate}
+                onChange={(e) => setEndLeaseDate(e.target.value)}
+              />
+              {endLeaseDate < activeLease.start_date ? (
+                <ErrorText>Can&apos;t be before the lease&apos;s start date.</ErrorText>
+              ) : null}
+            </div>
+          </ConfirmDialog>
 
           <div className="mt-6 border-t border-border pt-5">
             <h3 className="text-sm font-semibold text-foreground">Lease documents</h3>
@@ -256,10 +298,8 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
                   >
                     <span className="flex min-w-0 items-center gap-2 text-sm">
                       <FileText className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate">
-                        Document #{doc.id}{" "}
-                        <span className="text-muted-foreground">({doc.file_type})</span>
-                      </span>
+                      <span className="truncate">Document #{doc.id}</span>
+                      <MetaChip className="shrink-0 bg-card">{doc.file_type}</MetaChip>
                     </span>
                     <ConfirmDialog
                       title="Delete this document?"
@@ -286,6 +326,7 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
               <input
                 ref={fileInputRef}
                 type="file"
+                accept="application/pdf,image/jpeg,image/png"
                 className="max-w-full text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"
               />
               <Button
@@ -307,7 +348,9 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
         </Card>
       ) : (
         <Card className="mb-8 p-6">
-          <h2 className="mb-4 text-sm font-semibold text-foreground">Assign a tenant</h2>
+          <h2 className="mb-4 font-heading text-lg font-semibold tracking-tight text-foreground">
+            Assign a tenant
+          </h2>
           {availableTenants.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No tenants without an active lease. Add one from the{" "}
@@ -370,7 +413,10 @@ export default function UnitDetailPage(props: PageProps<"/units/[unitId]">) {
         </Card>
       )}
 
-      <h2 className="mt-10 mb-4 text-lg font-semibold text-foreground">Activity</h2>
+      {/* Deliberately not tabbed. tabs.tsx is the obvious candidate here, but
+          activity-log.spec.ts asserts "Unit added" is visible on load, and a
+          non-default tab would hide it. */}
+      <SectionHeader title="Activity" className="mt-10" />
       <ActivityLog fetchPath={`/units/${unitId}/activity`} />
     </div>
   );

@@ -81,7 +81,21 @@ jobs:
         working-directory: apps/web
         run: pnpm lint
 
+      # Neither lint nor vitest catches a drifted component prop signature,
+      # and the shared primitives are consumed across every page.
+      - name: Typecheck
+        if: steps.check.outputs.exists == 'true'
+        working-directory: apps/web
+        run: pnpm exec tsc --noEmit
+
       - name: Test
         if: steps.check.outputs.exists == 'true'
         working-directory: apps/web
         run: pnpm test
+
+      # A production build exercises paths `next dev` does not, so a broken
+      # build would otherwise only surface on deploy.
+      - name: Build
+        if: steps.check.outputs.exists == 'true'
+        working-directory: apps/web
+        run: pnpm build

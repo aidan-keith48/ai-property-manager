@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MailCheck } from "lucide-react";
 
 import { apiFetch, ApiError } from "@/lib/api";
+import { PropertyIdentity } from "@/components/property-identity";
 import { ErrorText } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,31 +70,52 @@ export default function PortalRequestLinkPage() {
   }
 
   return (
-    <Card className="p-6">
-      <h1 className="text-xl font-bold tracking-tight text-foreground">Report an issue</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Enter your email and we&apos;ll send you a link — no password needed.
-      </p>
-
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-        <div>
-          <Label htmlFor="tenant-email" className="mb-2">
-            Email
-          </Label>
-          <Input
-            id="tenant-email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <div>
+      {/* Hero treatment: this is the tenant's first impression of the product
+          and the one portal screen that isn't a working surface. */}
+      <PropertyIdentity
+        seed="portal-hero"
+        label="Report"
+        variant="plain"
+        size="hero"
+        className="mb-6 !rounded-xl"
+      >
+        <div className="absolute inset-0 flex flex-col justify-end p-6">
+          <p className="eyebrow text-white/70">Tenant portal</p>
+          <p className="mt-2 font-heading text-display-sm text-white">
+            Something broken?
+            <br />
+            Tell us in a minute.
+          </p>
         </div>
-        <ErrorText>{error}</ErrorText>
-        <Button type="submit" size="lg" disabled={submitting}>
-          {submitting ? "Sending..." : "Send me a link"}
-        </Button>
-      </form>
-    </Card>
+      </PropertyIdentity>
+
+      <Card className="p-6">
+        <h1 className="font-heading text-display-sm text-foreground">Report an issue</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Enter your email and we&apos;ll send you a link — no password needed.
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+          <div>
+            <Label htmlFor="tenant-email" className="mb-2">
+              Email
+            </Label>
+            <Input
+              id="tenant-email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <ErrorText>{error}</ErrorText>
+          <Button type="submit" size="lg" disabled={submitting}>
+            {submitting ? "Sending..." : "Send me a link"}
+          </Button>
+        </form>
+      </Card>
+    </div>
   );
 }
